@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="pt-BR" id="html-root">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connecting the Dots</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #06040d; --text: rgba(255,255,255,0.92); --muted: rgba(255,255,255,0.42);
+  --pink: #c84b9e; --purple: #7b2fff; --orange: #ff8c00; --gold: #ffd700; --blue: #3b82f6;
+}
+html,body { width:100%; min-height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; overflow-x:hidden; }
+
+#cosmos { position:fixed; inset:0; z-index:0; pointer-events:none; }
+#constellation-canvas { position:fixed; inset:0; z-index:2; pointer-events:none; opacity:.45; transition:opacity 1.2s ease; }
+#constellation-canvas.bright { opacity:1; }
+body::before { content:''; position:fixed; inset:0; z-index:1; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; opacity:.35; }
+
+/* ─── LANG SWITCHER ─── */
+#lang-switcher { position:fixed; top:20px; right:24px; z-index:100; }
+.lang-wrap { position:relative; }
+.lang-btn { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.7); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.75rem; letter-spacing:1.5px; text-transform:uppercase; padding:8px 14px; border-radius:50px; cursor:pointer; transition:all .3s; backdrop-filter:blur(8px); white-space:nowrap; }
+.lang-btn:hover { background:rgba(200,75,158,.12); border-color:rgba(200,75,158,.4); color:var(--text); }
+.lang-arrow { font-size:.6rem; opacity:.5; transition:transform .3s; display:inline-block; }
+.lang-wrap.open .lang-arrow { transform:rotate(180deg); }
+.lang-dropdown { position:absolute; top:calc(100% + 8px); right:0; background:rgba(12,8,24,.95); border:1px solid rgba(255,255,255,.1); border-radius:14px; overflow:hidden; min-width:148px; backdrop-filter:blur(20px); box-shadow:0 8px 32px rgba(0,0,0,.5); opacity:0; transform:translateY(-8px) scale(.97); pointer-events:none; transition:opacity .22s,transform .22s; }
+.lang-wrap.open .lang-dropdown { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.lang-option { display:flex; align-items:center; gap:10px; padding:11px 16px; font-family:'DM Sans',sans-serif; font-weight:300; font-size:.82rem; color:rgba(255,255,255,.6); cursor:pointer; transition:all .2s; border-bottom:1px solid rgba(255,255,255,.05); }
+.lang-option:last-child { border-bottom:none; }
+.lang-option:hover { background:rgba(200,75,158,.1); color:var(--text); }
+.lang-option.active { background:rgba(200,75,158,.15); color:var(--text); }
+.lang-option .check { margin-left:auto; color:#c84b9e; font-size:.7rem; opacity:0; }
+.lang-option.active .check { opacity:1; }
+
+/* ─── SCREENS ─── */
+.screen { position:relative; z-index:10; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; animation:fadeIn .6s ease forwards; }
+.screen.hidden { display:none; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.lang-fade-out { animation:lOut .18s ease forwards; }
+.lang-fade-in  { animation:lIn  .22s ease forwards; }
+@keyframes lOut { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-8px)} }
+@keyframes lIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── ORB ─── */
+.orb-scene { position:relative; width:200px; height:200px; margin:0 auto 44px; }
+.orb { width:130px; height:130px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#ffd700 0%,#ff8c00 35%,#ff6b6b 60%,#c84b9e 80%,#7b2fff 100%); box-shadow:0 0 60px 20px rgba(255,140,0,.35),0 0 120px 40px rgba(200,75,158,.2),0 0 200px 80px rgba(123,47,255,.1); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pulse 4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.06)} }
+.ring { position:absolute; top:50%; left:50%; border-radius:50%; border:1px solid rgba(255,255,255,.07); transform:translate(-50%,-50%); }
+.ring:nth-child(1){width:170px;height:170px;animation:spin 18s linear infinite}
+.ring:nth-child(2){width:200px;height:200px;animation:spin 28s linear infinite reverse}
+@keyframes spin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.dot { position:absolute; width:7px; height:7px; border-radius:50%; top:-3.5px; left:50%; margin-left:-3.5px; }
+.ring:nth-child(1) .dot:nth-child(1){background:#c84b9e;box-shadow:0 0 8px #c84b9e}
+.ring:nth-child(1) .dot:nth-child(2){background:#3b82f6;box-shadow:0 0 8px #3b82f6;top:auto;bottom:-3.5px}
+.ring:nth-child(2) .dot:nth-child(1){background:#ffd700;box-shadow:0 0 8px #ffd700}
+.ring:nth-child(2) .dot:nth-child(2){background:#7b2fff;box-shadow:0 0 8px #7b2fff;top:auto;bottom:-3.5px;left:30%}
+.ring:nth-child(2) .dot:nth-child(3){background:#ff6b6b;box-shadow:0 0 8px #ff6b6b;top:20%;left:80%}
+
+/* ─── INTRO ─── */
+#intro { text-align:center; }
+.badge-label { font-size:.72rem; letter-spacing:4px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; font-weight:200; }
+.main-title { font-family:'Cormorant Garamond',serif; font-size:clamp(3rem,7vw,5rem); font-weight:300; line-height:1.05; background:linear-gradient(135deg,#fff 0%,#e8d5f5 40%,#ffb347 80%,#ffd700 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:8px; }
+.intro-sub { font-size:1rem; color:var(--muted); max-width:380px; margin:0 auto 44px; line-height:1.75; font-weight:300; }
+.btn-glow { background:transparent; border:1px solid rgba(200,75,158,.45); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.85rem; letter-spacing:2.5px; text-transform:uppercase; padding:15px 50px; border-radius:50px; cursor:pointer; position:relative; overflow:hidden; transition:all .4s ease; }
+.btn-glow::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center,rgba(200,75,158,.18) 0%,transparent 70%); opacity:0; transition:opacity .4s; }
+.btn-glow:hover{border-color:rgba(200,75,158,.85);box-shadow:0 0 30px rgba(200,75,158,.3)}
+.btn-glow:hover::before{opacity:1}
+
+/* ─── CONTEXT ─── */
+#ctx-screen { text-align:center; }
+.ctx-wrap { width:100%; max-width:540px; }
+.ctx-title { font-family:'Cormorant Garamond',serif; font-size:clamp(1.8rem,4vw,2.6rem); font-weight:300; margin-bottom:8px; background:linear-gradient(135deg,#fff,#e8d5f5,#ffb347); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.ctx-sub { font-size:.88rem; color:var(--muted); margin-bottom:36px; line-height:1.7; }
+.ctx-section { margin-bottom:28px; text-align:left; }
+.ctx-label { font-size:.68rem; letter-spacing:2.5px; text-transform:uppercase; color:rgba(200,75,158,.7); margin-bottom:12px; font-weight:400; }
+.ctx-chips { display:flex; flex-wrap:wrap; gap:10px; }
+.ctx-chip { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); color:rgba(255,255,255,.65); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.84rem; padding:10px 18px; border-radius:50px; cursor:pointer; transition:all .3s; white-space:nowrap; }
+.ctx-chip:hover { border-color:rgba(200,75,158,.4); color:var(--text); background:rgba(200,75,158,.07); }
+.ctx-chip.active { border-color:rgba(200,75,158,.75); color:var(--text); background:rgba(200,75,158,.15); box-shadow:0 0 16px rgba(200,75,158,.15); }
+.ctx-input { width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.9rem; padding:13px 18px; border-radius:12px; outline:none; transition:all .3s; }
+.ctx-input::placeholder { color:rgba(255,255,255,.25); }
+.ctx-input:focus { border-color:rgba(200,75,158,.5); box-shadow:0 0 0 1px rgba(200,75,158,.2); }
+.btn-ctx-go { margin-top:36px; background:transparent; border:1px solid rgba(200,75,158,.45); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.82rem; letter-spacing:2.5px; text-transform:uppercase; padding:14px 44px; border-radius:50px; cursor:pointer; transition:all .4s; opacity:.4; pointer-events:none; }
+.btn-ctx-go.ready { opacity:1; pointer-events:auto; border-color:rgba(200,75,158,.7); }
+.btn-ctx-go.ready:hover { box-shadow:0 0 28px rgba(200,75,158,.3); }
+
+/* ─── QUESTION ─── */
+.q-layout { width:100%; max-width:660px; }
+.q-header { display:flex; align-items:center; gap:16px; margin-bottom:48px; }
+.btn-back { background:transparent; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.4); width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:all .3s; flex-shrink:0; }
+.btn-back:hover { border-color:rgba(255,255,255,.3); color:rgba(255,255,255,.7); }
+.btn-back:disabled { opacity:.2; cursor:default; }
+.prog-track { flex:1; height:2px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
+.prog-fill { height:100%; background:linear-gradient(90deg,#c84b9e,#ff8c00,#ffd700); border-radius:2px; transition:width .6s cubic-bezier(.4,0,.2,1); box-shadow:0 0 8px rgba(200,75,158,.6); }
+.q-counter { font-size:.72rem; letter-spacing:2px; color:var(--muted); white-space:nowrap; font-weight:300; }
+.q-ctx-tag { font-size:.75rem; color:rgba(200,75,158,.65); letter-spacing:2px; text-transform:uppercase; font-weight:300; margin-bottom:18px; min-height:18px; }
+.q-text { font-family:'Cormorant Garamond',serif; font-size:clamp(1.4rem,3.5vw,2rem); font-weight:300; line-height:1.4; margin-bottom:40px; min-height:72px; }
+.opts { display:flex; flex-direction:column; gap:11px; }
+.opt-btn { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:13px; padding:17px 22px; text-align:left; color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.9rem; line-height:1.65; cursor:pointer; transition:all .28s; position:relative; overflow:hidden; backdrop-filter:blur(4px); display:flex; align-items:flex-start; gap:14px; }
+.opt-btn::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at left center,rgba(200,75,158,.1) 0%,transparent 60%); opacity:0; transition:opacity .3s; }
+.opt-btn:hover { background:rgba(255,255,255,.07); border-color:rgba(200,75,158,.32); transform:translateX(4px); }
+.opt-btn:hover::before { opacity:1; }
+.opt-btn.selected { background:rgba(200,75,158,.14); border-color:rgba(200,75,158,.6); box-shadow:0 0 24px rgba(200,75,158,.12); }
+.opt-btn.selected::before { opacity:1; }
+.opt-letter { min-width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:.72rem; color:var(--muted); flex-shrink:0; transition:all .3s; margin-top:1px; }
+.opt-btn:hover .opt-letter, .opt-btn.selected .opt-letter { border-color:rgba(200,75,158,.7); color:#c84b9e; box-shadow:0 0 8px rgba(200,75,158,.4); }
+.q-enter { animation:qIn .45s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes qIn  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.mini-orb-wrap { position:fixed; bottom:32px; right:32px; width:72px; height:72px; pointer-events:none; z-index:5; opacity:.55; }
+.mini-orb { width:44px; height:44px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#ffd700,#ff8c00,#c84b9e,#7b2fff); box-shadow:0 0 28px rgba(200,75,158,.4); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pulse 4s ease-in-out infinite; }
+.mini-ring { position:absolute; top:50%; left:50%; width:68px; height:68px; border-radius:50%; border:1px solid rgba(255,255,255,.1); transform:translate(-50%,-50%); animation:spin 8s linear infinite; }
+.mini-dot { position:absolute; width:5px; height:5px; border-radius:50%; background:#c84b9e; box-shadow:0 0 5px #c84b9e; top:-2.5px; left:50%; margin-left:-2.5px; }
+
+/* ─── INTERACTION SHARED ─── */
+.int-screen { padding:24px; }
+.int-header { text-align:center; margin-bottom:32px; }
+.int-eyebrow { font-size:.65rem; letter-spacing:3.5px; text-transform:uppercase; color:rgba(200,75,158,.55); margin-bottom:10px; font-weight:300; }
+.int-title { font-family:'Cormorant Garamond',serif; font-size:clamp(1.6rem,4vw,2.4rem); font-weight:300; line-height:1.2; margin-bottom:10px; background:linear-gradient(135deg,#fff,#e8d5f5,#ffb347); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.int-sub { font-size:.85rem; color:rgba(255,255,255,.38); max-width:420px; margin:0 auto; line-height:1.7; }
+.int-footer { display:flex; align-items:center; justify-content:space-between; margin-top:28px; width:100%; max-width:600px; }
+.int-hint { font-size:.72rem; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.22); font-weight:300; }
+.btn-int { background:transparent; border:1px solid rgba(200,75,158,.35); color:rgba(255,255,255,.55); font-family:'DM Sans',sans-serif; font-weight:300; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; padding:11px 28px; border-radius:50px; cursor:pointer; transition:all .35s; opacity:.4; pointer-events:none; }
+.btn-int.ready { opacity:1; pointer-events:auto; border-color:rgba(200,75,158,.65); color:var(--text); }
+.btn-int.ready:hover { box-shadow:0 0 24px rgba(200,75,158,.25); }
+
+/* ─── INTERACTION 1: TRÊS MOVIMENTOS (v3 — slider nativo, sem drag bug) ─── */
+/* Tudo escopado em #int-tresmovimentos — zero colisão com o resto do teste */
+
+#int-tresmovimentos {
+  padding:28px 24px 48px;
+  max-width:680px;
+  margin:0 auto;
+  width:100%;
+}
+
+/* Section cards */
+#int-tresmovimentos .tm-sec {
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  padding:32px 32px 28px;
+  margin-bottom:20px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .4s;
+}
+@media(max-width:520px){ #int-tresmovimentos .tm-sec { padding:22px 18px 20px; } }
+#int-tresmovimentos .tm-sec:hover { border-color:rgba(200,75,158,.18); }
+#int-tresmovimentos .tm-sec::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, var(--tms-color, #c84b9e), transparent);
+  opacity:.7;
+}
+
+/* Section header row */
+#int-tresmovimentos .tm-sec-top {
+  display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:6px;
+}
+#int-tresmovimentos .tm-sec-num {
+  font-size:.6rem; letter-spacing:3px; text-transform:uppercase;
+  color:var(--tms-color, #c84b9e); font-weight:500; margin-bottom:6px; display:block;
+}
+#int-tresmovimentos .tm-sec-title {
+  font-family:'Cormorant Garamond',serif; font-size:1.5rem;
+  font-weight:300; color:rgba(255,255,255,.92); line-height:1.2;
+}
+
+/* ⓘ Info button + tooltip — scoped so no collision with test */
+#int-tresmovimentos .tm-info {
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; border-radius:50%; border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.42); font-size:.7rem; cursor:pointer; flex-shrink:0; margin-top:2px;
+  transition:all .25s; user-select:none; -webkit-tap-highlight-color:transparent;
+}
+#int-tresmovimentos .tm-info:hover { border-color:rgba(200,75,158,.5); color:#c84b9e; }
+#int-tresmovimentos .tm-tip {
+  position:absolute; right:0; top:calc(100% + 8px);
+  background:rgba(12,8,28,.97); border:1px solid rgba(200,75,158,.25);
+  border-radius:12px; padding:14px 16px; width:250px;
+  font-size:.76rem; color:rgba(255,255,255,.65); line-height:1.65;
+  z-index:300; pointer-events:none;
+  opacity:0; transform:translateY(-4px) scale(.97);
+  transition:opacity .22s, transform .22s;
+  backdrop-filter:blur(12px);
+}
+#int-tresmovimentos .tm-tip::before {
+  content:''; position:absolute; right:8px; top:-5px; width:8px; height:8px;
+  background:rgba(12,8,28,.97);
+  border-left:1px solid rgba(200,75,158,.25); border-top:1px solid rgba(200,75,158,.25);
+  transform:rotate(45deg);
+}
+#int-tresmovimentos .tm-info:hover .tm-tip,
+#int-tresmovimentos .tm-info:focus .tm-tip { opacity:1; transform:translateY(0) scale(1); }
+
+/* Italic question */
+#int-tresmovimentos .tm-question {
+  font-family:'Cormorant Garamond',serif; font-style:italic;
+  font-size:1.06rem; color:rgba(255,255,255,.55);
+  line-height:1.55; margin:12px 0 26px;
+  padding-left:14px; border-left:2px solid rgba(200,75,158,.25);
+}
+#int-tresmovimentos .tm-hint {
+  font-size:.71rem; color:rgba(255,255,255,.22);
+  margin-top:10px; letter-spacing:.4px; line-height:1.55;
+}
+
+/* ── M1: NATIVE RANGE SLIDER (zero drag bugs) ── */
+#int-tresmovimentos .tm-slider-wrap { position:relative; padding:4px 0 18px; }
+#int-tresmovimentos .tm-slider-labels {
+  display:flex; justify-content:space-between; margin-bottom:14px;
+}
+#int-tresmovimentos .tm-slider-lbl {
+  font-size:.63rem; letter-spacing:2px; text-transform:uppercase;
+  color:rgba(255,255,255,.42); font-weight:400; line-height:1.4; max-width:128px;
+}
+#int-tresmovimentos .tm-slider-lbl:last-child { text-align:right; }
+
+/* The native input — this is what makes M1 work perfectly */
+#int-tresmovimentos input[type=range] {
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:4px; border-radius:4px;
+  background:rgba(255,255,255,.1);
+  outline:none; cursor:pointer; display:block;
+}
+#int-tresmovimentos input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:22px; height:22px; border-radius:50%;
+  background:radial-gradient(circle at 38% 35%,#fff 0%,#c84b9e 50%,#7b2fff 100%);
+  box-shadow:0 0 14px rgba(200,75,158,.65), 0 0 28px rgba(200,75,158,.22);
+  cursor:grab; transition:transform .15s, box-shadow .15s;
+}
+#int-tresmovimentos input[type=range]:active::-webkit-slider-thumb {
+  transform:scale(1.2); cursor:grabbing;
+  box-shadow:0 0 22px rgba(200,75,158,.85), 0 0 44px rgba(200,75,158,.3);
+}
+#int-tresmovimentos input[type=range]::-moz-range-thumb {
+  width:22px; height:22px; border-radius:50%; border:none;
+  background:radial-gradient(circle at 38% 35%,#fff,#c84b9e,#7b2fff);
+  box-shadow:0 0 14px rgba(200,75,158,.65); cursor:grab;
+}
+#int-tresmovimentos input[type=range]::-moz-range-track {
+  height:4px; border-radius:4px; background:rgba(255,255,255,.1);
+}
+#int-tresmovimentos .tm-slider-val-row { display:flex; justify-content:center; margin-top:10px; }
+#int-tresmovimentos .tm-slider-val {
+  font-size:.7rem; letter-spacing:2px; text-transform:uppercase;
+  color:#c84b9e; font-weight:400; opacity:0; transition:opacity .3s; min-height:14px;
+}
+#int-tresmovimentos .tm-slider-val.visible { opacity:1; }
+
+/* ── M2: 5-point scale ── */
+#int-tresmovimentos .tm-scale-wrap { display:flex; flex-direction:column; gap:12px; }
+#int-tresmovimentos .tm-scale-poles { display:flex; justify-content:space-between; }
+#int-tresmovimentos .tm-scale-pole {
+  font-size:.61rem; letter-spacing:1.5px; text-transform:uppercase;
+  color:rgba(255,255,255,.42); max-width:130px; line-height:1.45;
+}
+#int-tresmovimentos .tm-scale-pole:last-child { text-align:right; }
+#int-tresmovimentos .tm-scale-track {
+  display:flex; gap:8px; align-items:center; justify-content:center;
+}
+#int-tresmovimentos .tm-scale-btn {
+  width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+  cursor:pointer; transition:all .25s;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; color:rgba(255,255,255,.42); font-weight:400; position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+#int-tresmovimentos .tm-scale-btn:hover {
+  background:rgba(200,75,158,.1); border-color:rgba(200,75,158,.35); color:rgba(255,255,255,.92);
+}
+#int-tresmovimentos .tm-scale-btn.selected {
+  background:rgba(200,75,158,.22); border-color:rgba(200,75,158,.7);
+  box-shadow:0 0 16px rgba(200,75,158,.25); color:rgba(255,255,255,.92);
+}
+#int-tresmovimentos .tm-scale-btn.selected::after {
+  content:''; position:absolute; top:-4px; left:50%; width:4px; height:4px;
+  margin-left:-2px; border-radius:50%; background:#c84b9e; box-shadow:0 0 6px #c84b9e;
+}
+#int-tresmovimentos .tm-scale-sel-label {
+  text-align:center; font-size:.71rem; color:#c84b9e;
+  letter-spacing:1.5px; min-height:16px; transition:opacity .3s; opacity:0;
+}
+#int-tresmovimentos .tm-scale-sel-label.visible { opacity:1; }
+
+/* ── M3: 2×2 card grid ── */
+#int-tresmovimentos .tm-temporal-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+@media(max-width:480px){ #int-tresmovimentos .tm-temporal-grid { grid-template-columns:1fr; } }
+#int-tresmovimentos .tm-tcard {
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  border-radius:14px; padding:16px 18px; cursor:pointer; transition:all .28s;
+  position:relative; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+#int-tresmovimentos .tm-tcard::before {
+  content:''; position:absolute; inset:0; opacity:0;
+  background:radial-gradient(ellipse at 30% 50%, rgba(200,75,158,.1), transparent 65%);
+  transition:opacity .28s;
+}
+#int-tresmovimentos .tm-tcard:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.15); }
+#int-tresmovimentos .tm-tcard:hover::before { opacity:1; }
+#int-tresmovimentos .tm-tcard.selected { border-color:var(--tc, #c84b9e); }
+#int-tresmovimentos .tm-tcard.selected::before {
+  opacity:1;
+  background:radial-gradient(ellipse at 30% 50%, var(--tcg, rgba(200,75,158,.12)), transparent 65%);
+}
+#int-tresmovimentos .tm-tc-lbl {
+  font-size:.6rem; letter-spacing:2.5px; text-transform:uppercase;
+  font-weight:500; margin-bottom:6px; color:var(--tc, rgba(255,255,255,.42));
+}
+#int-tresmovimentos .tm-tc-txt { font-size:.86rem; color:rgba(255,255,255,.72); line-height:1.55; }
+#int-tresmovimentos .tm-tc-sub { font-size:.73rem; color:rgba(255,255,255,.42); margin-top:4px; line-height:1.4; }
+
+/* ── Section footer ── */
+#int-tresmovimentos .tm-sec-footer { display:flex; justify-content:flex-end; margin-top:14px; }
+#int-tresmovimentos .tm-btn-reset {
+  background:transparent; border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.28); font-family:'DM Sans',sans-serif;
+  font-size:.64rem; letter-spacing:2px; text-transform:uppercase;
+  padding:6px 14px; border-radius:50px; cursor:pointer; transition:all .25s;
+}
+#int-tresmovimentos .tm-btn-reset:hover { border-color:rgba(255,255,255,.25); color:rgba(255,255,255,.6); }
+
+/* ── Submit / continue area ── */
+#int-tresmovimentos .tm-submit-area { text-align:center; margin-top:28px; }
+#int-tresmovimentos .tm-progress-hint {
+  font-size:.71rem; color:rgba(255,255,255,.22); margin-top:10px;
+  letter-spacing:.5px; transition:opacity .4s;
+}
+#int-tresmovimentos .tm-btn-continue {
+  display:inline-block; background:transparent;
+  border:1px solid rgba(200,75,158,.28); color:rgba(255,255,255,.28);
+  font-family:'DM Sans',sans-serif; font-size:.74rem; letter-spacing:2px;
+  text-transform:uppercase; padding:12px 36px; border-radius:50px;
+  cursor:default; pointer-events:none; transition:all .4s;
+}
+#int-tresmovimentos .tm-btn-continue.active {
+  border-color:rgba(200,75,158,.7); color:rgba(255,255,255,.9);
+  cursor:pointer; pointer-events:auto; box-shadow:0 0 24px rgba(200,75,158,.18);
+}
+#int-tresmovimentos .tm-btn-continue.active:hover {
+  background:rgba(200,75,158,.1); box-shadow:0 0 34px rgba(200,75,158,.3);
+}
+
+
+
+/* ─── INTERACTION 2: GRAVIDADE (v3 — 4 prioridades, swap, sem bug de score) ─── */
+#int-gravidade .grav-scene { position:relative; width:min(320px,80vw); height:min(320px,80vw); margin:0 auto; }
+.grav-rings { position:absolute; inset:0; }
+.grav-ring { position:absolute; top:50%; left:50%; border-radius:50%; border:1px solid rgba(255,255,255,.07); transform:translate(-50%,-50%); transition:border-color .4s, box-shadow .4s; }
+.grav-ring.active-ring { border-color:rgba(200,75,158,.25); box-shadow:0 0 14px rgba(200,75,158,.1); }
+/* Priority class per ring: p1=inner … p4=outer */
+.grav-ring.p1 { border-color:rgba(200,75,158,.18); }
+.grav-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); border-radius:50%; cursor:default; }
+.grav-orb { width:48px; height:48px; border-radius:50%; background:radial-gradient(circle at 38% 32%,#ffd700 0%,#ff8c00 40%,#c84b9e 70%,#7b2fff 100%); box-shadow:0 0 28px rgba(200,75,158,.55),0 0 56px rgba(123,47,255,.2),inset 0 1px 1px rgba(255,255,255,.25); animation:pulse 3s ease-in-out infinite; }
+/* Elements: smooth left/top transitions */
+.grav-element { position:absolute; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; transition:left .48s cubic-bezier(.25,.9,.35,1.08), top .48s cubic-bezier(.25,.9,.35,1.08); user-select:none; -webkit-tap-highlight-color:transparent; will-change:left,top; }
+.grav-element:active .grav-sphere { transform:scale(.9); }
+.grav-sphere { border-radius:50%; border:1px solid rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; transition:background .38s ease, border-color .38s ease, box-shadow .38s ease, transform .18s ease; font-size:.56rem; font-weight:400; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.65); }
+.grav-sphere:hover { transform:scale(1.1); }
+/* Visual states by priority — p1 brightest, p4 dimmest */
+.grav-element.gp1 .grav-sphere { background:radial-gradient(circle at 40% 35%,rgba(200,75,158,.4),rgba(123,47,255,.25)); border-color:rgba(200,75,158,.8); box-shadow:0 0 24px rgba(200,75,158,.45),0 0 8px rgba(200,75,158,.3),inset 0 1px 1px rgba(255,255,255,.12); color:var(--text); }
+.grav-element.gp1 .grav-label { color:rgba(255,255,255,.85); }
+.grav-element.gp2 .grav-sphere { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.22); box-shadow:0 0 10px rgba(255,255,255,.06); color:rgba(255,255,255,.8); }
+.grav-element.gp2 .grav-label { color:rgba(255,255,255,.6); }
+.grav-element.gp3 .grav-sphere { background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.12); box-shadow:none; color:rgba(255,255,255,.55); }
+.grav-element.gp3 .grav-label { color:rgba(255,255,255,.38); }
+.grav-element.gp4 .grav-sphere { background:rgba(255,255,255,.02); border-color:rgba(255,255,255,.07); box-shadow:none; color:rgba(255,255,255,.38); opacity:.7; }
+.grav-element.gp4 .grav-label { color:rgba(255,255,255,.25); }
+.grav-label { font-size:.55rem; letter-spacing:2px; text-transform:uppercase; text-align:center; white-space:nowrap; transition:color .38s; font-weight:300; }
+/* 4-dot priority indicator */
+.grav-state-dots { display:flex; gap:3px; justify-content:center; margin-top:2px; }
+.grav-state-dot { width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,.13); transition:background .3s ease, box-shadow .3s ease; }
+.grav-state-dot.lit { background:#c84b9e; box-shadow:0 0 5px rgba(200,75,158,.7); }
+/* Floating tooltip */
+.grav-tooltip { position:fixed; background:rgba(12,8,28,.92); border:1px solid rgba(200,75,158,.45); color:rgba(255,255,255,.82); font-family:'DM Sans',sans-serif; font-size:.67rem; letter-spacing:1.6px; text-transform:uppercase; padding:7px 16px; border-radius:50px; pointer-events:none; z-index:200; opacity:0; transform:translateY(0); transition:opacity .28s ease, transform .28s ease; white-space:nowrap; backdrop-filter:blur(8px); }
+.grav-tooltip.show { opacity:1; transform:translateY(-8px); }
+.grav-hint { text-align:center; margin-top:20px; font-size:.71rem; color:rgba(255,255,255,.22); letter-spacing:.8px; line-height:1.55; padding:0 8px; }
+
+/* ─── INTERACTION 3: TRAJETÓRIA ─── */
+#int-trajetoria .traj-wrap { width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px; }
+.traj-path { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:18px 22px; cursor:pointer; transition:all .3s; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:18px; position:relative; overflow:hidden; }
+.traj-path::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity .4s; }
+.traj-path:hover { transform:translateX(4px); border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.055); }
+.traj-path.selected { border-color:var(--traj-color,#c84b9e); box-shadow:0 0 24px rgba(200,75,158,.15); }
+.traj-path.selected::before { opacity:1; background:radial-gradient(ellipse at left center,rgba(200,75,158,.08) 0%,transparent 65%); }
+.traj-visual { width:80px; height:40px; flex-shrink:0; position:relative; overflow:visible; }
+.traj-svg { width:80px; height:40px; }
+.traj-info { }
+.traj-name { font-family:'Cormorant Garamond',serif; font-size:1.15rem; font-weight:300; color:var(--text); margin-bottom:3px; }
+.traj-desc { font-size:.8rem; color:rgba(255,255,255,.38); line-height:1.5; }
+
+/* ─── MICRO REVELATION ─── */
+#micro-revelation { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(6,4,13,.85); backdrop-filter:blur(12px); opacity:0; pointer-events:none; transition:opacity .6s; }
+#micro-revelation.visible { opacity:1; pointer-events:auto; }
+.rev-inner { text-align:center; padding:40px 24px; }
+.rev-pulse { width:80px; height:80px; border-radius:50%; margin:0 auto 28px; position:relative; }
+.rev-pulse-orb { width:100%; height:100%; border-radius:50%; background:radial-gradient(circle at 40% 35%,#ffd700,#ff8c00,#c84b9e,#7b2fff); animation:pulse 1.5s ease-in-out infinite; }
+.rev-text { font-family:'Cormorant Garamond',serif; font-size:clamp(1.4rem,4vw,2rem); font-weight:300; color:var(--text); margin-bottom:12px; line-height:1.35; }
+.rev-sub { font-size:.82rem; color:rgba(255,255,255,.38); letter-spacing:1.5px; text-transform:uppercase; font-weight:200; }
+
+/* ─── PROCESSING ─── */
+#processing { text-align:center; }
+.proc-scene { width:200px; height:200px; position:relative; margin:0 auto 40px; }
+.proc-orb { width:120px; height:120px; border-radius:50%; background:radial-gradient(circle at 40% 35%,#ffd700,#ff8c00,#c84b9e,#7b2fff); box-shadow:0 0 80px 30px rgba(200,75,158,.4); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pulse 2s ease-in-out infinite; }
+.proc-ring { position:absolute; top:50%; left:50%; border-radius:50%; border:1px solid rgba(255,255,255,.08); transform:translate(-50%,-50%); }
+.proc-ring:nth-child(1){width:152px;height:152px;animation:spin 6s linear infinite}
+.proc-ring:nth-child(2){width:196px;height:196px;animation:spin 10s linear infinite reverse}
+.proc-text { font-size:.78rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-weight:200; animation:blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:.35} 50%{opacity:.9} }
+
+/* ─── RESULT ─── */
+#result { max-width:720px; margin:0 auto; padding:60px 24px; text-align:center; }
+.model-badge { display:inline-block; margin-bottom:20px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:50px; padding:8px 24px; font-size:.72rem; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.55); font-weight:400; }
+.model-badge span { font-weight:700; }
+.res-orb-scene { width:200px; height:200px; position:relative; margin:0 auto 32px; }
+.res-orb { width:118px; height:118px; border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); animation:pulse 4s ease-in-out infinite; }
+.res-ring { position:absolute; top:50%; left:50%; border-radius:50%; border:1px solid rgba(255,255,255,.07); transform:translate(-50%,-50%); }
+.res-ring:nth-child(1){width:158px;height:158px;animation:spin 12s linear infinite}
+.res-ring:nth-child(2){width:200px;height:200px;animation:spin 22s linear infinite reverse}
+.res-dot { position:absolute; width:7px; height:7px; border-radius:50%; top:-3.5px; left:50%; margin-left:-3.5px; }
+.res-label { font-size:.7rem; letter-spacing:4px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; font-weight:200; }
+.res-name { font-family:'Cormorant Garamond',serif; font-size:clamp(2.4rem,6vw,4rem); font-weight:300; margin-bottom:4px; background:linear-gradient(135deg,#fff,#e8d5f5,#ffb347); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.res-tagline { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.1rem; color:rgba(255,255,255,.5); margin-bottom:40px; }
+.ctx-summary { font-size:.78rem; color:rgba(255,255,255,.28); margin-bottom:36px; letter-spacing:.5px; }
+.res-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; text-align:left; }
+@media(max-width:560px){.res-grid{grid-template-columns:1fr}}
+.res-block { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:16px; padding:22px; transition:all .3s; animation:blockIn .5s ease both; }
+@keyframes blockIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.res-block:hover { background:rgba(255,255,255,.05); border-color:rgba(200,75,158,.22); }
+.res-block.full { grid-column:1/-1; }
+.res-block h4 { font-size:.66rem; letter-spacing:2.5px; text-transform:uppercase; font-weight:400; margin-bottom:10px; }
+.res-block p,.res-block li { font-size:.87rem; line-height:1.75; color:rgba(255,255,255,.62); }
+.res-block ul { padding-left:16px; }
+.res-block li { margin-bottom:4px; }
+
+/* Practical action block */
+.action-block { background:rgba(200,75,158,.06); border:1px solid rgba(200,75,158,.2); border-radius:16px; padding:26px; margin:20px 0; text-align:left; animation:blockIn .5s ease both; }
+.action-block h4 { font-size:.66rem; letter-spacing:2.5px; text-transform:uppercase; font-weight:400; color:#c84b9e; margin-bottom:14px; }
+.action-item { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
+.action-icon { font-size:1rem; flex-shrink:0; margin-top:1px; }
+.action-text { font-size:.87rem; line-height:1.7; color:rgba(255,255,255,.65); }
+.action-text strong { color:rgba(255,255,255,.85); font-weight:400; }
+
+.second-block { margin-top:20px; padding:22px 26px; border:1px solid rgba(255,255,255,.06); border-radius:16px; background:rgba(255,255,255,.02); text-align:left; }
+.second-block .sec-label { font-size:.66rem; letter-spacing:2.5px; text-transform:uppercase; color:rgba(255,255,255,.27); margin-bottom:8px; font-weight:400; }
+.second-block h3 { font-family:'Cormorant Garamond',serif; font-size:1.35rem; font-weight:300; margin-bottom:6px; color:rgba(255,255,255,.68); }
+.second-block p { font-size:.87rem; color:rgba(255,255,255,.42); line-height:1.75; }
+.score-section { margin-top:32px; text-align:left; }
+.score-title { font-size:.66rem; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; font-weight:400; }
+.score-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.score-name { font-size:.76rem; color:rgba(255,255,255,.45); width:120px; flex-shrink:0; }
+.score-track { flex:1; height:2px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
+.score-bar { height:100%; border-radius:2px; transition:width 1.2s cubic-bezier(.4,0,.2,1) .4s; }
+.score-pct { font-size:.7rem; color:var(--muted); width:32px; text-align:right; flex-shrink:0; }
+.btn-restart { margin-top:40px; background:transparent; border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.45); font-family:'DM Sans',sans-serif; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; padding:12px 32px; border-radius:50px; cursor:pointer; transition:all .3s; }
+.btn-restart:hover { border-color:rgba(255,255,255,.28); color:rgba(255,255,255,.75); }
+::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:rgba(200,75,158,.3);border-radius:2px}
+
+/* ── INÍCIO: estilos cards de relacionamento entre perfis ── */
+#rel-section {
+  margin-top:52px;
+  text-align:left;
+  animation:blockIn .5s ease 1.1s both;
+}
+.rel-header {
+  text-align:center;
+  margin-bottom:32px;
+}
+.rel-eyebrow {
+  font-size:.66rem;
+  letter-spacing:3.5px;
+  text-transform:uppercase;
+  color:rgba(200,75,158,.55);
+  margin-bottom:10px;
+  font-weight:300;
+}
+.rel-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.5rem,3.5vw,2.1rem);
+  font-weight:300;
+  line-height:1.15;
+  margin-bottom:10px;
+  background:linear-gradient(135deg,#fff,#e8d5f5,#ffb347);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.rel-intro {
+  font-size:.85rem;
+  color:rgba(255,255,255,.38);
+  max-width:500px;
+  margin:0 auto;
+  line-height:1.75;
+  font-weight:300;
+}
+/* divider between result and relationship section */
+.rel-divider {
+  width:60px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(200,75,158,.35),transparent);
+  margin:0 auto 36px;
+}
+
+/* grid */
+.rel-grid {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+@media(min-width:601px)  { .rel-grid { grid-template-columns:1fr 1fr; } }
+@media(min-width:901px)  { .rel-grid { grid-template-columns:repeat(3,1fr); } }
+
+/* card shell */
+.rel-card {
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;
+  overflow:hidden;
+  transition:transform .28s ease, box-shadow .28s ease, border-color .28s ease, background .28s ease;
+  display:flex;
+  flex-direction:column;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+.rel-card:hover {
+  transform:translateY(-4px);
+  background:rgba(255,255,255,.05);
+}
+.rel-card.rc-C:hover { border-color:rgba(99,102,241,.4);  box-shadow:0 10px 36px rgba(99,102,241,.12); }
+.rel-card.rc-M:hover { border-color:rgba(16,185,129,.4);  box-shadow:0 10px 36px rgba(16,185,129,.12); }
+.rel-card.rc-E:hover { border-color:rgba(245,158,11,.4);  box-shadow:0 10px 36px rgba(245,158,11,.12); }
+.rel-card.rc-K:hover { border-color:rgba(239,68,68,.4);   box-shadow:0 10px 36px rgba(239,68,68,.12);  }
+
+/* card header */
+.rel-card-head {
+  padding:18px 20px 14px;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.rel-card-orb {
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.rc-C .rel-card-orb { background:radial-gradient(circle at 38% 32%,#c7d2fe,#6366f1,#1e3a8a); box-shadow:0 0 14px rgba(99,102,241,.45); }
+.rc-M .rel-card-orb { background:radial-gradient(circle at 38% 32%,#6ee7b7,#10b981,#065f46); box-shadow:0 0 14px rgba(16,185,129,.45); }
+.rc-E .rel-card-orb { background:radial-gradient(circle at 38% 32%,#fde68a,#f59e0b,#92400e); box-shadow:0 0 14px rgba(245,158,11,.45); }
+.rc-K .rel-card-orb { background:radial-gradient(circle at 38% 32%,#fca5a5,#ef4444,#991b1b); box-shadow:0 0 14px rgba(239,68,68,.45); }
+.rel-card-meta { flex:1; min-width:0; }
+.rel-card-model {
+  font-size:.58rem;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  font-weight:600;
+  margin-bottom:2px;
+}
+.rc-C .rel-card-model { color:#6366f1; }
+.rc-M .rel-card-model { color:#10b981; }
+.rc-E .rel-card-model { color:#f59e0b; }
+.rc-K .rel-card-model { color:#ef4444; }
+.rel-card-name {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.08rem;
+  font-weight:300;
+  color:rgba(255,255,255,.9);
+  line-height:1.2;
+}
+.rel-card-sub {
+  font-size:.72rem;
+  color:rgba(255,255,255,.3);
+  font-style:italic;
+  margin-top:2px;
+}
+
+/* summary (always visible) */
+.rel-card-summary {
+  padding:14px 20px;
+  font-size:.84rem;
+  color:rgba(255,255,255,.58);
+  line-height:1.72;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+/* "Ver mais" toggle button */
+.rel-btn-toggle {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  background:none;
+  border:none;
+  padding:12px 20px;
+  cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+  font-size:.72rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  font-weight:300;
+  color:rgba(200,75,158,.7);
+  transition:color .25s, background .25s;
+  text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+.rel-btn-toggle:hover { color:rgba(200,75,158,1); background:rgba(200,75,158,.05); }
+.rel-btn-arrow {
+  font-size:.6rem;
+  transition:transform .3s ease;
+  display:inline-block;
+  margin-left:auto;
+}
+.rel-card.is-expanded .rel-btn-arrow { transform:rotate(180deg); }
+
+/* expandable detail panel */
+.rel-detail {
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .42s cubic-bezier(.4,0,.2,1);
+}
+.rel-card.is-expanded .rel-detail {
+  max-height:1400px;
+}
+
+/* sections inside detail */
+.rel-detail-inner {
+  padding:0 20px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.rel-detail-section {
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:11px;
+  padding:14px 16px;
+}
+.rel-detail-label {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:.6rem;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  font-weight:600;
+  margin-bottom:9px;
+}
+.rel-detail-label .dl-ico { font-size:.78rem; }
+.dl-dynamic { color:rgba(200,75,158,.8); }
+.dl-connect  { color:rgba(59,130,246,.8); }
+.dl-harmony  { color:rgba(16,185,129,.8); }
+.dl-learn    { color:rgba(245,158,11,.8); }
+.rel-detail-section p,
+.rel-detail-section li {
+  font-size:.83rem;
+  color:rgba(255,255,255,.58);
+  line-height:1.72;
+}
+.rel-detail-section ul { padding-left:15px; }
+.rel-detail-section li { margin-bottom:6px; }
+.rel-detail-section p + p { margin-top:8px; }
+.rel-detail-section strong { color:rgba(255,255,255,.78); font-weight:400; }
+.rel-detail-section em { font-style:italic; color:rgba(255,255,255,.48); }
+
+/* weekly actions block */
+.rel-actions-block {
+  margin-top:24px;
+  padding:22px 24px;
+  border-radius:16px;
+  border-left:3px solid;
+  animation:blockIn .5s ease 1.3s both;
+}
+.rel-actions-block.ra-C { border-color:#6366f1; background:rgba(99,102,241,.06); }
+.rel-actions-block.ra-M { border-color:#10b981; background:rgba(16,185,129,.06); }
+.rel-actions-block.ra-E { border-color:#f59e0b; background:rgba(245,158,11,.06); }
+.rel-actions-block.ra-K { border-color:#ef4444; background:rgba(239,68,68,.06); }
+.rel-actions-title {
+  font-size:.62rem;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  font-weight:600;
+  margin-bottom:14px;
+}
+.ra-C .rel-actions-title { color:#6366f1; }
+.ra-M .rel-actions-title { color:#10b981; }
+.ra-E .rel-actions-title { color:#f59e0b; }
+.ra-K .rel-actions-title { color:#ef4444; }
+.rel-action-row {
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+  align-items:flex-start;
+}
+.rel-action-row:last-child { margin-bottom:0; }
+.rel-action-num {
+  min-width:22px;
+  height:22px;
+  border-radius:50%;
+  border:1px solid;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:.62rem;
+  font-weight:700;
+  flex-shrink:0;
+  margin-top:2px;
+}
+.ra-C .rel-action-num { border-color:rgba(99,102,241,.5);  color:#6366f1; }
+.ra-M .rel-action-num { border-color:rgba(16,185,129,.5);  color:#10b981; }
+.ra-E .rel-action-num { border-color:rgba(245,158,11,.5);  color:#f59e0b; }
+.ra-K .rel-action-num { border-color:rgba(239,68,68,.5);   color:#ef4444; }
+.rel-action-text {
+  font-size:.85rem;
+  line-height:1.68;
+  color:rgba(255,255,255,.6);
+}
+.rel-action-text strong { color:rgba(255,255,255,.85); font-weight:400; }
+
+@media(max-width:560px){
+  .rel-card-head      { padding:14px 16px; }
+  .rel-card-summary   { padding:12px 16px; }
+  .rel-btn-toggle     { padding:11px 16px; }
+  .rel-detail-inner   { padding:0 16px 16px; }
+  .rel-actions-block  { padding:18px 20px; }
+}
+/* ── FIM: estilos cards de relacionamento entre perfis ── */
+</style>
+</head>
+<body>
+
+<canvas id="cosmos"></canvas>
+<canvas id="constellation-canvas"></canvas>
+
+<!-- ════ LANG ════ -->
+<div id="lang-switcher">
+  <div class="lang-wrap" id="lang-wrap">
+    <button class="lang-btn" id="lang-btn" onclick="toggleLang(event)">
+      <span id="lang-flag">🇧🇷</span>
+      <span id="lang-label">PT</span>
+      <span class="lang-arrow">▾</span>
+    </button>
+    <div class="lang-dropdown" id="lang-dropdown">
+      <div class="lang-option active" data-lang="pt" onclick="setLang('pt')"><span>🇧🇷</span> Português <span class="check">✓</span></div>
+      <div class="lang-option" data-lang="es" onclick="setLang('es')"><span>🇪🇸</span> Español <span class="check">✓</span></div>
+      <div class="lang-option" data-lang="en" onclick="setLang('en')"><span>🇺🇸</span> English <span class="check">✓</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ INTRO ════ -->
+<div class="screen" id="intro">
+  <div class="orb-scene">
+    <div class="ring"><div class="dot"></div><div class="dot"></div></div>
+    <div class="ring"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div class="orb"></div>
+  </div>
+  <div class="badge-label" data-i18n="intro.badge"></div>
+  <h1 class="main-title">Connecting<br>the Dots</h1>
+  <p class="intro-sub" data-i18n="intro.sub"></p>
+  <button class="btn-glow" onclick="goCtx()" data-i18n="intro.btn"></button>
+</div>
+
+<!-- ════ CONTEXT ════ -->
+<div class="screen hidden" id="ctx-screen">
+  <div class="ctx-wrap">
+    <div class="ctx-title" data-i18n="ctx.title"></div>
+    <p class="ctx-sub" data-i18n="ctx.sub"></p>
+    <div class="ctx-section">
+      <div class="ctx-label" data-i18n="ctx.envLabel"></div>
+      <div class="ctx-chips" id="chips-env"></div>
+    </div>
+    <div class="ctx-section">
+      <div class="ctx-label" data-i18n="ctx.areaLabel"></div>
+      <input class="ctx-input" id="area-input" type="text" oninput="checkCtx()">
+    </div>
+    <div class="ctx-section">
+      <div class="ctx-label" data-i18n="ctx.expLabel"></div>
+      <div class="ctx-chips" id="chips-exp"></div>
+    </div>
+    <div style="text-align:center;">
+      <button class="btn-ctx-go" id="btn-ctx-go" onclick="startTest()" data-i18n="ctx.btn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ QUESTION ════ -->
+<div class="screen hidden" id="q-screen">
+  <div class="q-layout">
+    <div class="q-header">
+      <button class="btn-back" id="btn-back" onclick="goBack()" disabled>&#8592;</button>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="q-counter" id="q-counter">1 / 18</div>
+    </div>
+    <div id="q-content">
+      <div class="q-ctx-tag" id="q-ctx-tag"></div>
+      <div class="q-text" id="q-text"></div>
+      <div class="opts" id="opts"></div>
+    </div>
+  </div>
+  <div class="mini-orb-wrap"><div class="mini-ring"><div class="mini-dot"></div></div><div class="mini-orb"></div></div>
+</div>
+
+<!-- ════ INTERACTION 1: TRÊS MOVIMENTOS (v3) ════ -->
+<div class="screen hidden int-screen" id="int-tresmovimentos">
+
+  <!-- ── MOVIMENTO 1: ESPECTRO COGNITIVO ── -->
+  <div class="tm-sec" style="--tms-color:#6366f1" id="tm-sec1">
+    <div class="tm-sec-top">
+      <div>
+        <span class="tm-sec-num">Movimento 1</span>
+        <div class="tm-sec-title">Espectro Cognitivo</div>
+      </div>
+      <div class="tm-info" tabindex="0">ⓘ
+        <div class="tm-tip">
+          <strong style="color:#a5b4fc;font-weight:500">Como isso é calculado</strong><br><br>
+          O cursor mede sua posição entre dois modos cognitivos dominantes.<br><br>
+          <strong style="color:rgba(255,255,255,.8)">Estrutura/Clareza →</strong> contribui para os modelos Clássico e Competitivo.<br>
+          <strong style="color:rgba(255,255,255,.8)">Complexidade/Ambiguidade →</strong> contribui para os modelos Estratégico e Motivador.<br><br>
+          Peso máximo desta dimensão: <strong style="color:#a5b4fc">±0.8 pontos</strong>
+        </div>
+      </div>
+    </div>
+    <p class="tm-question">
+      Você se sente mais vivo resolvendo o que ainda não tem resposta,<br>ou estruturando o que já existe?
+    </p>
+    <div class="tm-slider-wrap">
+      <div class="tm-slider-labels">
+        <div class="tm-slider-lbl">Estrutura e<br>clareza me energizam</div>
+        <div class="tm-slider-lbl">Ambiguidade e<br>complexidade me energizam</div>
+      </div>
+      <input type="range" id="tm-slider1" min="0" max="100" value="50"
+             oninput="tmOnSlider1(this.value)" onchange="tmOnSlider1(this.value)">
+      <div class="tm-slider-val-row">
+        <span class="tm-slider-val" id="tm-slider1-label"></span>
+      </div>
+    </div>
+    <p class="tm-hint">Se você genuinamente se sente bem nos dois, posicione no centro — mas repare se isso é verdade ou se é uma resposta diplomática.</p>
+    <div class="tm-sec-footer">
+      <button class="tm-btn-reset" onclick="tmResetSlider1()">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── MOVIMENTO 2: CALIBRAÇÃO SOCIAL ── -->
+  <div class="tm-sec" style="--tms-color:#10b981" id="tm-sec2">
+    <div class="tm-sec-top">
+      <div>
+        <span class="tm-sec-num">Movimento 2</span>
+        <div class="tm-sec-title">Calibração Social</div>
+      </div>
+      <div class="tm-info" tabindex="0">ⓘ
+        <div class="tm-tip">
+          <strong style="color:#6ee7b7;font-weight:500">Como isso é calculado</strong><br><br>
+          A escala mede sua posição entre decisão autônoma e decisão sensível ao grupo.<br><br>
+          <strong style="color:rgba(255,255,255,.8)">Posições 1–2 (autônomo):</strong> contribui para Clássico, Estratégico e Competitivo.<br>
+          <strong style="color:rgba(255,255,255,.8)">Posições 4–5 (sensível ao grupo):</strong> contribui para Motivador.<br>
+          <strong style="color:rgba(255,255,255,.8)">Posição 3 (centro):</strong> distribuição neutra.<br><br>
+          Peso máximo: <strong style="color:#6ee7b7">±0.6 pontos</strong>
+        </div>
+      </div>
+    </div>
+    <p class="tm-question">
+      Quando você precisa agir, o que você confia mais:<br>a sua leitura interna ou a leitura do ambiente?
+    </p>
+    <div class="tm-scale-wrap">
+      <div class="tm-scale-poles">
+        <div class="tm-scale-pole">Confio na minha análise e comunico depois</div>
+        <div class="tm-scale-pole">Preciso sentir o grupo antes de decidir</div>
+      </div>
+      <div class="tm-scale-track" id="tm-scale2-track">
+        <button class="tm-scale-btn" data-val="1" onclick="tmOnScale2(1)">1</button>
+        <button class="tm-scale-btn" data-val="2" onclick="tmOnScale2(2)">2</button>
+        <button class="tm-scale-btn" data-val="3" onclick="tmOnScale2(3)">3</button>
+        <button class="tm-scale-btn" data-val="4" onclick="tmOnScale2(4)">4</button>
+        <button class="tm-scale-btn" data-val="5" onclick="tmOnScale2(5)">5</button>
+      </div>
+      <div class="tm-scale-sel-label" id="tm-scale2-label"></div>
+    </div>
+    <p class="tm-hint">Nem autônomo nem dependente do grupo é melhor — são estilos com contextos onde brilham.</p>
+    <div class="tm-sec-footer">
+      <button class="tm-btn-reset" onclick="tmResetScale2()">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── MOVIMENTO 3: ORIENTAÇÃO TEMPORAL ── -->
+  <div class="tm-sec" style="--tms-color:#f59e0b" id="tm-sec3">
+    <div class="tm-sec-top">
+      <div>
+        <span class="tm-sec-num">Movimento 3</span>
+        <div class="tm-sec-title">Orientação Temporal</div>
+      </div>
+      <div class="tm-info" tabindex="0">ⓘ
+        <div class="tm-tip">
+          <strong style="color:#fde68a;font-weight:500">Como isso é calculado</strong><br><br>
+          Cada opção corresponde a uma referência temporal dominante:<br><br>
+          🔵 <strong style="color:rgba(255,255,255,.8)">Passado:</strong> modelo Clássico.<br>
+          🟢 <strong style="color:rgba(255,255,255,.8)">Presente:</strong> modelo Motivador.<br>
+          🔴 <strong style="color:rgba(255,255,255,.8)">Futuro imediato:</strong> modelo Competitivo.<br>
+          🟡 <strong style="color:rgba(255,255,255,.8)">Futuro estratégico:</strong> modelo Estratégico.<br><br>
+          Peso: <strong style="color:#fde68a">+1.0 ponto</strong> para o modelo escolhido.
+        </div>
+      </div>
+    </div>
+    <p class="tm-question">Numa decisão difícil, o que te ancora primeiro?</p>
+    <div class="tm-temporal-grid" id="tm-temporal-grid">
+      <div class="tm-tcard" data-model="C"
+           style="--tc:#6366f1; --tcg:rgba(99,102,241,.12)"
+           onclick="tmOnTemporal('C', this)">
+        <div class="tm-tc-lbl">Referência passada</div>
+        <div class="tm-tc-txt">"O que já funcionou antes nessa situação?"</div>
+        <div class="tm-tc-sub">O histórico orienta a decisão.</div>
+      </div>
+      <div class="tm-tcard" data-model="M"
+           style="--tc:#10b981; --tcg:rgba(16,185,129,.12)"
+           onclick="tmOnTemporal('M', this)">
+        <div class="tm-tc-lbl">Presente relacional</div>
+        <div class="tm-tc-txt">"Quem está envolvido agora e o que precisa?"</div>
+        <div class="tm-tc-sub">As pessoas e o momento atual orientam a decisão.</div>
+      </div>
+      <div class="tm-tcard" data-model="K"
+           style="--tc:#ef4444; --tcg:rgba(239,68,68,.12)"
+           onclick="tmOnTemporal('K', this)">
+        <div class="tm-tc-lbl">Futuro próximo</div>
+        <div class="tm-tc-txt">"Qual resultado posso alcançar nos próximos dias?"</div>
+        <div class="tm-tc-sub">O resultado concreto imediato orienta a decisão.</div>
+      </div>
+      <div class="tm-tcard" data-model="E"
+           style="--tc:#f59e0b; --tcg:rgba(245,158,11,.12)"
+           onclick="tmOnTemporal('E', this)">
+        <div class="tm-tc-lbl">Futuro estratégico</div>
+        <div class="tm-tc-txt">"Para onde queremos ir nos próximos anos?"</div>
+        <div class="tm-tc-sub">A direção de longo prazo orienta a decisão.</div>
+      </div>
+    </div>
+    <p class="tm-hint" style="margin-top:16px">Não pense no que "deveria" responder. Qual âncora sua mente vai primeiro, de forma automática?</p>
+    <div class="tm-sec-footer">
+      <button class="tm-btn-reset" onclick="tmResetTemporal()">Limpar</button>
+    </div>
+  </div>
+
+  <!-- ── Botão Continuar ── -->
+  <div class="tm-submit-area">
+    <button class="tm-btn-continue" id="tm-btn-continue" onclick="tmCalculate()">
+      Continuar →
+    </button>
+    <p class="tm-progress-hint" id="tm-progress-hint">Responda os 3 movimentos para continuar.</p>
+  </div>
+
+</div>
+
+<!-- ════ INTERACTION 2: GRAVIDADE ════ -->
+<div class="screen hidden int-screen" id="int-gravidade">
+  <div class="int-header">
+    <div class="int-eyebrow" data-i18n="int2.eyebrow"></div>
+    <div class="int-title" data-i18n="int2.title"></div>
+    <div class="int-sub" data-i18n="int2.sub"></div>
+  </div>
+  <div class="grav-scene" id="grav-scene">
+    <div class="grav-rings" id="grav-rings"></div>
+    <div class="grav-center"><div class="grav-orb"></div></div>
+    <!-- elements injected by JS -->
+  </div>
+  <div class="grav-hint" data-i18n="int2.hint"></div>
+  <div class="int-footer">
+    <div class="int-hint" id="grav-status"></div>
+    <button class="btn-int ready" onclick="completeGravidade()" data-i18n="int2.btn"></button>
+  </div>
+</div>
+
+<!-- ════ INTERACTION 3: TRAJETÓRIA ════ -->
+<div class="screen hidden int-screen" id="int-trajetoria">
+  <div class="int-header">
+    <div class="int-eyebrow" data-i18n="int3.eyebrow"></div>
+    <div class="int-title" data-i18n="int3.title"></div>
+    <div class="int-sub" data-i18n="int3.sub"></div>
+  </div>
+  <div class="traj-wrap" id="traj-wrap"></div>
+  <div class="int-footer" style="justify-content:center; margin-top:8px">
+    <div class="int-hint" data-i18n="int3.hint"></div>
+  </div>
+</div>
+
+<!-- ════ MICRO REVELATION ════ -->
+<div id="micro-revelation">
+  <div class="rev-inner">
+    <div class="rev-pulse"><div class="rev-pulse-orb"></div></div>
+    <div class="rev-text" id="rev-text"></div>
+    <div class="rev-sub" data-i18n="rev.sub"></div>
+  </div>
+</div>
+
+<!-- ════ PROCESSING ════ -->
+<div class="screen hidden" id="processing">
+  <div class="proc-scene">
+    <div class="proc-ring"><div class="dot" style="background:#c84b9e;box-shadow:0 0 8px #c84b9e"></div></div>
+    <div class="proc-ring"><div class="dot" style="background:#ffd700;box-shadow:0 0 8px #ffd700"></div></div>
+    <div class="proc-orb"></div>
+  </div>
+  <div class="proc-text" data-i18n="processing.text"></div>
+</div>
+
+<!-- ════ RESULT ════ -->
+<div class="screen hidden" id="result" style="padding-top:80px"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// TRANSLATIONS
+// ══════════════════════════════════════════════════
+const TRANS = {
+pt:{
+  htmlLang:'pt-BR', langFlag:'🇧🇷', langLabel:'PT',
+  intro:{ badge:'Uma jornada de autoconhecimento', sub:'Você não vai responder perguntas.\nVai tomar decisões.\nE seus padrões vão se revelar por si mesmos.', btn:'Começar' },
+  ctx:{ title:'Antes de começar', sub:'Três perguntas rápidas para calibrar sua experiência.', envLabel:'Onde você atua hoje?', envOptions:['Startup','Empresa tradicional','ONG / Impacto social','Autônomo / Criador','Outro'], areaLabel:'Sua área de atuação', areaPlaceholder:'Ex: tecnologia, educação, saúde, marketing…', expLabel:'Tempo de experiência profissional', expOptions:['Iniciante','1–3 anos','3–5 anos','5+ anos'], btn:'Entrar no teste' },
+  int2:{ eyebrow:'Pausa · Gravidade', title:'O que está no centro de como você trabalha?', sub:'Clique em cada elemento para aproximá-lo ou afastá-lo do núcleo.', elements:['PROCESSO','PESSOAS','ESTRATÉGIA','PERFORMANCE'], hint:'Clique nas esferas para ordenar por prioridade: o mais próximo do centro é o mais importante para você. Cada nível deve conter um único elemento.', btn:'Continuar →' },
+  int3:{ eyebrow:'Pausa · Trajetória', title:'Como você avança em direção a um objetivo?', sub:'Escolha o caminho que mais se parece com o seu.', hint:'Clique para selecionar', paths:[{name:'Direta',desc:'Sem desvios. Só o destino importa.'},{name:'Estruturada',desc:'Passo a passo. Cada etapa verificada.'},{name:'Exploratória',desc:'Múltiplos caminhos. A análise revela a rota.'},{name:'Conectada',desc:'Passando pelas pessoas certas. O caminho é relacional.'}] },
+  rev:{ sub:'Continue. A constelação está se formando.' },
+  processing:{ text:'Conectando os pontos' },
+  result:{ modelLabel:'Você pertence ao modelo:', dominantProfile:'Seu perfil predominante', howYouWork:'Como você funciona', whatYouDeliver:'O que você entrega', whatSabotages:'O que pode te sabotar', underPressure:'Sob pressão', howYouDecide:'Como decide', actionTitle:'O que fazer agora', secondTrait:'Segundo traço · Modelo', secondTraitSuffix:(pct,n)=>`Com ${pct}% das suas respostas, esse padrão aparece como modificador — revelando como o <strong>${n}</strong> opera em situações específicas.`, scoresTitle:'Distribuição dos padrões', restart:'Refazer o teste', expSuffix:'de experiência' },
+  profiles:{
+    C:{ modelName:'CLÁSSICO', name:'O Guardião', tagline:'Você constrói sistemas que sobrevivem a você.',
+        description:'Você opera por processo, estrutura e consistência. Não por rigidez — por inteligência operacional. Resultados confiáveis não nascem de brilhantismo esporádico, mas de sistemas que funcionam todo dia. Sua força está em criar ordem onde há caos.',
+        strengths:['Consistência que outros não conseguem replicar','Capacidade de criar estrutura em ambientes caóticos','Entrega de alta qualidade sustentada no tempo','Clareza sobre papéis, processos e responsabilidades'],
+        risks:['Resistência a mudanças necessárias por apego ao processo','Paralisia quando não há validação ou precedente claro','Dificuldade em enxergar a pessoa por trás do desempenho','Invisibilidade em culturas que premiam autopromoção'],
+        pressure:'Sob pressão, busca precedente e validação antes de agir. Pode parecer lento para quem quer velocidade — mas raramente precisa refazer.',
+        decisions:'Decide com base no que foi combinado, no padrão existente e no aval hierárquico.',
+        actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Antes de aceitar qualquer nova demanda, pergunte explicitamente: "qual é o critério de sucesso aqui?" Isso ativa seu sistema operacional.'},{icon:'🔍',text:'<strong>Observe:</strong> Nos próximos 30 dias, note os momentos em que o processo está servindo à entrega — e os momentos em que está impedindo.'},{icon:'🌱',text:'<strong>Desenvolva:</strong> Tolerância controlada à ambiguidade. Você não precisa abandonar o processo — precisa saber quando 80% de clareza já é suficiente para avançar.'}] },
+    M:{ modelName:'MOTIVADOR', name:'O Catalisador', tagline:'Você não gerencia pessoas. Você ativa o que elas já são.',
+        description:'Você processa o mundo através das pessoas. Antes de qualquer análise técnica, você lê o estado emocional de um grupo. Você cria ambientes onde as pessoas conseguem dar o melhor de si. Sua força não é o que você faz — é o que você libera nos outros.',
+        strengths:['Criação genuína de segurança psicológica','Percepção do que está errado antes de aparecer nos números','Times mais coesos e comprometidos do que a média','Mediação de conflitos que outros ignorariam'],
+        risks:['Postergar decisões difíceis para não gerar desconforto','Absorver o estado emocional do ambiente sem perceber','Confundir ser querido com ter influência real','Investir cuidado em ambientes que não o valorizam'],
+        pressure:'Sob pressão, primeiro verifica quem está sendo afetado. Pode parecer que prioriza pessoas sobre resultado — está, e sabe por que isso funciona.',
+        decisions:'Decide considerando o impacto humano como variável de peso equivalente ao resultado. Busca alinhamento genuíno.',
+        actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Na próxima decisão difícil, separe explicitamente o que você sente do que o contexto exige. Isso não é frieza — é clareza.'},{icon:'🔍',text:'<strong>Observe:</strong> Note quando você está postergando uma conversa difícil. O custo do silêncio é quase sempre maior do que o custo do desconforto.'},{icon:'🌱',text:'<strong>Desenvolva:</strong> Critérios de resultado claros para você mesmo. Ambientes relacionais têm métricas subjetivas — criar seus próprios marcadores de avanço é proteção.'}] },
+    E:{ modelName:'ESTRATÉGICO', name:'O Visionário', tagline:'Você não resolve problemas. Você dissolve as condições que os geram.',
+        description:'Você pensa em sistemas. Antes de responder uma pergunta, verifica se aquela é a pergunta certa. Mantém múltiplas variáveis na cabeça e detecta inconsistências em argumentos que parecem sólidos. Sua maior contribuição não é a resposta que você dá — é a pergunta que só você faz.',
+        strengths:['Distinguir o problema apresentado do problema real','Visão de longo prazo que outros raramente alcançam','Diagnóstico sistêmico que previne problemas futuros','Rigor analítico que protege de decisões impulsivas caras'],
+        risks:['Análise que se torna procrastinação com boa justificativa','Dificuldade de comunicar para quem pensa diferente','Julgamento implícito de quem age sem análise','Distância da execução depois que o mapa está pronto'],
+        pressure:'Sob pressão, tenta mapear variáveis e nomear o que sabe vs. o que não sabe. Pode ser o único fazendo a pergunta certa — no pior momento possível.',
+        decisions:'Decide com base em análise de trade-offs e impacto futuro. Prefere adiar a decidir com premissa errada.',
+        actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Escolha uma decisão pendente e defina o prazo para decidir — mesmo sem todos os dados. Pratique o "suficientemente bom para avançar".'},{icon:'🔍',text:'<strong>Observe:</strong> Note a diferença entre análise que adiciona valor e análise que posterga decisão. Você sabe distinguir — quando quiser.'},{icon:'🌱',text:'<strong>Desenvolva:</strong> Capacidade de síntese para comunicação. Você precisa de análise para funcionar. O ambiente precisa de conclusões para avançar.'}] },
+    K:{ modelName:'COMPETITIVO', name:'O Acelerador', tagline:'Você não espera pelas condições ideais. Você as cria enquanto se move.',
+        description:'Você converte intenção em ação mais rápido do que a maioria. Onde outros estão processando, você já está executando. Pressão não te paralisa — te calibra. Você decide com informação incompleta porque sabe que corrigir em movimento é mais eficiente do que esperar.',
+        strengths:['Velocidade de decisão e execução que poucos mantêm','Funcionamento superior sob pressão e prazos apertados','Capacidade de gerar resultado em condições imperfeitas','Clareza implacável sobre o que importa'],
+        risks:['Velocidade que atropela qualidade quando se exige precisão','Custo relacional de avançar mais rápido que o time','Resistência a processos que protegem qualidade real','Dificuldade em sustentar projetos longos sem ciclos curtos de resultado'],
+        pressure:'Sob pressão máxima é onde você funciona melhor. Decide, executa, ajusta. O erro é dado do processo.',
+        decisions:'Decide pelo critério de impacto em resultado. Aceita risco calculado. Não precisa de consenso para agir.',
+        actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Antes de avançar rápido, pergunte: "quem vai ser afetado por isso e o que precisa saber?" Um minuto de alinhamento pode poupar três dias de reversão.'},{icon:'🔍',text:'<strong>Observe:</strong> Note os momentos em que você avançou e precisou voltar. Esse é o dado que revela quando a velocidade custou mais do que entregou.'},{icon:'🌱',text:'<strong>Desenvolva:</strong> Ciclos de feedback explícitos em projetos longos. Você funciona bem com resultado rápido — em projetos sem ciclos curtos, crie os seus.'}] }
+  },
+  questions:[
+    {ctx:"Decisão sob pressão",q:"A reunião exige sua posição agora. Você tem metade das informações que precisaria.",opts:[{k:'C',t:"Pede 24h. Prefere uma posição fundamentada a improvisar."},{k:'M',t:"Pede 2 minutos para ouvir quem vai ser mais afetado — antes de dar qualquer posição."},{k:'E',t:"Apresenta o que sabe, nomeia o que não sabe, propõe a opção mais coerente com os dados."},{k:'K',t:"Dá a recomendação com o que tem. Errar e corrigir é mais eficiente que esperar."}]},
+    {ctx:"Discordância no grupo",q:"O grupo chegou a um consenso que você acha errado. A reunião está encerrando. Não há mais tempo.",opts:[{k:'E',t:"Interrompe. Uma decisão errada vai custar mais do que o atraso de 5 minutos."},{k:'K',t:"Aceita e já está pensando em como fazer a decisão funcionar."},{k:'C',t:"Registra a discordância formalmente e então executa."},{k:'M',t:"Aceita, mas avisa quem vai ser impactado antes da comunicação oficial."}]},
+    {ctx:"Velocidade versus qualidade",q:"Você pode entregar em 3 dias com 75% de qualidade, ou em 8 dias com 100%.",opts:[{k:'M',t:"Liga para o cliente antes de decidir. Quer entender o que está por trás da urgência."},{k:'K',t:"Entrega em 3 dias. O que precisar de ajuste, ajusta depois."},{k:'C',t:"Entrega em 8 dias. Atalho que gera retrabalho não é ganho de tempo."},{k:'E',t:"Propõe entrega faseada: maior impacto em 3 dias, restante em 8."}]},
+    {ctx:"Novo ambiente sem estrutura",q:"Primeiro mês num cargo novo. Sem processo definido, papéis sobrepostos.",opts:[{k:'C',t:"Mapeia o processo informal e propõe uma versão documentada."},{k:'M',t:"Investe semanas em conversas. A clareza vai aparecer nas relações."},{k:'K',t:"Identifica onde pode gerar mais impacto rápido e começa."},{k:'E',t:"Pesquisa o histórico. Entender por que a desordem existe é condição para criar ordem duradoura."}]},
+    {ctx:"Conflito entre colegas",q:"Duas pessoas do time estão em conflito há semanas. O trabalho ainda é entregue. Não é sua função resolver.",opts:[{k:'C',t:"Não interfere. Se o trabalho está entregue, o problema é gerencial."},{k:'M',t:"Chama cada um separadamente. A tensão te afeta — prefere tentar mesmo sem autoridade."},{k:'E',t:"Observa mais antes de agir. Precisa entender se o conflito é interpessoal ou estrutural."},{k:'K',t:"Age quando o conflito comprometer a entrega. Antes disso, não é o momento."}]},
+    {ctx:"Erro com consequência real",q:"Um erro seu causou atraso e impacto no cliente. Você precisa reportar.",opts:[{k:'E',t:"'O que aconteceu, qual premissa estava errada, e o que isso muda na nossa abordagem.'"},{k:'K',t:"'O que aconteceu, qual o impacto exato, e o que faço nas próximas 48h para reverter.'"},{k:'C',t:"'O que aconteceu, onde o processo falhou, e o que mudamos para não se repetir.'"},{k:'M',t:"'O que aconteceu, quem foi afetado e como, e o que farei para reparar.'"}]},
+    {ctx:"Performance abaixo do esperado",q:"Alguém do seu time entrega abaixo do esperado há três meses. Você precisa ter a conversa.",opts:[{k:'M',t:"Começa com: 'Como você está se sentindo com o seu trabalho ultimamente?'"},{k:'K',t:"Vai direto: 'Seu resultado está abaixo. O que muda nos próximos 30 dias?'"},{k:'C',t:"Começa com os critérios do papel: o que foi combinado versus o que foi entregue."},{k:'E',t:"Antes, verifica se há algo no sistema dificultando: expectativas, recursos, contexto."}]},
+    {ctx:"Definição de prioridades",q:"Três demandas urgentes chegaram ao mesmo tempo. Você consegue fazer duas. Precisa escolher agora.",opts:[{k:'E',t:"Avalia qual tem mais impacto no objetivo estratégico de longo prazo."},{k:'C',t:"Verifica qual foi combinada mais recentemente com aval mais claro."},{k:'K',t:"Faz a conta de retorno de esforço: qual entrega mais resultado com menos recurso."},{k:'M',t:"Identifica qual causará mais impacto negativo nas pessoas se não for feita."}]},
+    {ctx:"Abordagem melhor a caminho",q:"O time está executando. Você percebe uma forma significativamente melhor — mas mudar vai atrasar.",opts:[{k:'C',t:"Continua o plano. Mudar no meio gera inconsistência e consome o capital de confiança do time."},{k:'M',t:"Apresenta ao time. Se a maioria quiser mudar, muda junto. Não decide sozinho."},{k:'K',t:"Implementa a melhoria na sua parte e mostra o resultado. Evidência convence mais que argumento."},{k:'E',t:"Avalia: o ganho justifica o custo de realinhamento?"}]},
+    {ctx:"Feedback que você discorda",q:"Seu gestor diz que você precisa mudar algo que você acredita ser uma das suas forças.",opts:[{k:'K',t:"Pergunta direto: 'Se eu mudar isso, meu resultado vai melhorar? Em quê?'"},{k:'C',t:"Verifica se há critério formal do papel que sustente o feedback."},{k:'E',t:"Pede exemplos: em que situações esse comportamento foi observado?"},{k:'M',t:"Considera quanto confia na percepção do gestor antes de avaliar o conteúdo."}]},
+    {ctx:"Time atrasado, prazo crítico",q:"Faltam 5 dias. O time está atrasado por razões diferentes para cada pessoa.",opts:[{k:'M',t:"Trata cada situação de forma diferente: suporte, clareza e conversa direta conforme a causa."},{k:'E',t:"Identifica qual problema, se resolvido, vai desbloquear mais capacidade nos 5 dias."},{k:'C',t:"Redefine o processo: quem faz o quê, em qual sequência, com qual critério mínimo."},{k:'K',t:"Define o que precisa ser entregue e comunica expectativa explícita para cada pessoa."}]},
+    {ctx:"Decisão com impacto humano",q:"Você recebe uma meta que vai exigir reduzir a equipe.",opts:[{k:'E',t:"Analisa se essa meta realmente resolve o problema que a organização precisa resolver."},{k:'C',t:"Mapeia o processo correto de como isso deve ser feito. Decisões assim têm protocolo."},{k:'M',t:"Primeiro verifica como comunicar e quem será afetado — antes de qualquer decisão operacional."},{k:'K',t:"Avalia o que precisa ser feito, define o plano e comunica. A decisão foi tomada."}]},
+    {ctx:"Resultado com custo alto",q:"O projeto foi entregue no prazo. Mas o time está esgotado e duas pessoas pediram desligamento.",opts:[{k:'K',t:"A entrega foi bem-sucedida. O desgaste é custo real — mas não muda o resultado."},{k:'C',t:"A entrega foi bem-sucedida. O desgaste é dado para planejar o próximo ciclo melhor."},{k:'E',t:"Resultado técnico alcançado, mas impacto de longo prazo ainda é incerto."},{k:'M',t:"Entrega parcialmente bem-sucedida. Esgotamento e perda de pessoas sinaliza que o modelo estava errado."}]},
+    {ctx:"Implementar algo que você não acredita",q:"Você precisa implementar uma mudança que acredita ser equivocada — e depende da adesão do time.",opts:[{k:'C',t:"Implementa conforme o processo definido. A decisão foi tomada por quem tem autoridade."},{k:'K',t:"Implementa rápido e mede. Se funcionar, estava errado. Se não, tem dados para propor mudança."},{k:'M',t:"Cria espaço para o time expressar resistências antes de implementar."},{k:'E',t:"Escala a discordância com dados antes de implementar. Não apresentar a análise é omissão."}]},
+    {ctx:"Escolha entre meta e pessoas",q:"Para 100% da meta você precisaria pressionar o time além do razoável. Sem pressão, chega em 85%.",opts:[{k:'K',t:"Pressiona para 100%. Meta é meta. O time aguentará duas semanas."},{k:'M',t:"Conversa com o time. Se quiserem dar o extra, pressiona junto."},{k:'C',t:"Verifica o que foi formalmente combinado como critério de sucesso."},{k:'E',t:"Avalia o que a diferença de 15% representa no contexto maior. Se marginal, preserva o time."}]},
+    {ctx:"Dois membros com visões opostas",q:"Dois membros altamente capazes defendem abordagens completamente diferentes.",opts:[{k:'C',t:"Define qual abordagem está mais alinhada ao processo estabelecido."},{k:'E',t:"Pede que cada um apresente o argumento contra a própria abordagem."},{k:'M',t:"Facilita uma conversa para que cada um entenda o ponto de vista do outro."},{k:'K',t:"Decide. O custo do impasse é maior que o de uma decisão imperfeita."}]},
+    {ctx:"Projeto inédito, alta visibilidade",q:"Você foi escolhido para liderar algo que a empresa nunca fez. Sem processo, sem referência.",opts:[{k:'C',t:"Busca referência externa antes de começar do zero."},{k:'E',t:"Define qual problema esse projeto resolve — antes de qualquer solução."},{k:'M',t:"Mapeia quem vai ser impactado. Primeiro entende quem precisa embarcar junto."},{k:'K',t:"Define a primeira entrega rápida que cria evidência de que o projeto está funcionando."}]},
+    {ctx:"Feedback em público",q:"Em plena reunião, seu gestor critica seu trabalho na frente de todos — sem aviso prévio.",opts:[{k:'E',t:"Avalia o conteúdo independente do contexto. Se tem fundamento, concorda e propõe ajuste."},{k:'K',t:"Responde diretamente e encerra. O que importa é que o trabalho seja feito bem."},{k:'C',t:"Responde tecnicamente na reunião. Depois, aponta que feedback em público sem aviso não é o processo correto."},{k:'M',t:"Não reage muito na reunião. Depois, fala sobre como aquilo afetou a relação."}]}
+  ]
+},
+en:{
+  htmlLang:'en', langFlag:'🇺🇸', langLabel:'EN',
+  intro:{ badge:'A journey of self-knowledge', sub:"You won't answer questions.\nYou'll make decisions.\nAnd your patterns will reveal themselves.", btn:'Begin' },
+  ctx:{ title:'Before we start', sub:'Three quick questions to calibrate your experience.', envLabel:'Where do you work today?', envOptions:['Startup','Traditional company','NGO / Social impact','Freelancer / Creator','Other'], areaLabel:'Your area of work', areaPlaceholder:'E.g.: technology, education, health, marketing…', expLabel:'Years of professional experience', expOptions:['Beginner','1–3 years','3–5 years','5+ years'], btn:'Enter the test' },
+  int2:{ eyebrow:'Pause · Gravity', title:'What is at the center of how you work?', sub:'Click each element to move it closer or further from the core.', elements:['PROCESS','PEOPLE','STRATEGY','PERFORMANCE'], hint:'Click the spheres to rank by priority: closest to the center is most important to you. Each orbit must hold exactly one element.', btn:'Continue →' },
+  int3:{ eyebrow:'Pause · Trajectory', title:'How do you naturally advance toward a goal?', sub:'Choose the path that most resembles yours.', hint:'Click to select', paths:[{name:'Direct',desc:'No detours. Only the destination matters.'},{name:'Structured',desc:'Step by step. Each phase verified.'},{name:'Exploratory',desc:'Multiple paths. Analysis reveals the route.'},{name:'Connected',desc:'Through the right people. The path is relational.'}] },
+  rev:{ sub:'Continue. The constellation is forming.' },
+  processing:{ text:'Connecting the dots' },
+  result:{ modelLabel:'You belong to the model:', dominantProfile:'Your dominant profile', howYouWork:'How you operate', whatYouDeliver:'What you deliver', whatSabotages:'What can sabotage you', underPressure:'Under pressure', howYouDecide:'How you decide', actionTitle:'What to do now', secondTrait:'Second trait · Model', secondTraitSuffix:(pct,n)=>`With ${pct}% of your answers, this pattern appears as a modifier — revealing how the <strong>${n}</strong> operates in specific situations.`, scoresTitle:'Pattern distribution', restart:'Retake the test', expSuffix:'of experience' },
+  profiles:{
+    C:{ modelName:'CLASSICAL', name:'The Guardian', tagline:'You build systems that outlast you.', description:"You operate through process, structure, and consistency — not from rigidity, but from operational intelligence. Reliable results don't come from sporadic brilliance, but from systems that work every day.", strengths:['Consistency others cannot replicate','Ability to create structure in chaotic environments','Sustained high-quality delivery over time','Clarity about roles, processes, and responsibilities'], risks:['Resistance to necessary change due to attachment to process','Paralysis without validation or clear precedent','Difficulty seeing the person behind the performance','Invisibility in cultures that reward self-promotion'], pressure:'Under pressure, seeks precedent and validation before acting. May seem slow to those wanting speed — but rarely needs to redo.', decisions:'Decides based on what was agreed, existing standards, and hierarchical approval.', actions:[{icon:'⚡',text:'<strong>This week:</strong> Before accepting any new demand, explicitly ask: "what is the success criterion here?" This activates your operating system.'},{icon:'🔍',text:'<strong>Observe:</strong> Over the next 30 days, note when process is serving delivery — and when it is preventing it.'},{icon:'🌱',text:'<strong>Develop:</strong> Controlled tolerance for ambiguity. You don\'t need to abandon process — you need to know when 80% clarity is enough to move forward.'}] },
+    M:{ modelName:'MOTIVATOR', name:'The Catalyst', tagline:"You don't manage people. You activate what they already are.", description:"You process the world through people. Before any technical analysis, you read a group's emotional state. You create environments where people give their best. Your strength isn't what you do — it's what you unlock in others.", strengths:['Genuine creation of psychological safety','Sensing what is wrong before it shows in numbers','More cohesive and committed teams than average','Conflict mediation others would ignore'], risks:['Postponing difficult decisions to avoid discomfort','Absorbing the emotional state of the environment unnoticed','Confusing being liked with having real influence','Investing care in environments that don\'t value it'], pressure:'Under pressure, first checks who is being affected. May seem to prioritize people over results — they do, and know why that works.', decisions:'Decides treating human impact as a variable equal in weight to results. Seeks genuine alignment.', actions:[{icon:'⚡',text:'<strong>This week:</strong> In the next difficult decision, explicitly separate what you feel from what the context requires. That\'s not coldness — that\'s clarity.'},{icon:'🔍',text:'<strong>Observe:</strong> Notice when you\'re postponing a difficult conversation. The cost of silence is almost always greater than the cost of discomfort.'},{icon:'🌱',text:'<strong>Develop:</strong> Clear result criteria for yourself. Relational environments have subjective metrics — building your own progress markers is protection.'}] },
+    E:{ modelName:'STRATEGIC', name:'The Visionary', tagline:"You don't solve problems. You dissolve the conditions that create them.", description:"You think in systems. Before answering a question, you check whether that's even the right question. You hold multiple variables in mind and detect inconsistencies in arguments that seem solid. Your greatest contribution isn't the answer you give — it's the question only you ask.", strengths:['Distinguishing the presented problem from the real one','Long-term vision that others rarely reach','Systemic diagnosis that prevents future problems','Analytical rigor that protects against costly impulsive decisions'], risks:['Analysis that becomes procrastination with good justification','Difficulty communicating with those who think differently','Implicit judgment of those who act without analysis','Distance from execution once the strategic map is ready'], pressure:'Under pressure, tries to map variables and name what is known vs. unknown. May be the only one asking the right question — at the worst possible time.', decisions:'Decides based on trade-off analysis and future impact. Prefers to delay rather than decide on a flawed premise.', actions:[{icon:'⚡',text:'<strong>This week:</strong> Pick one pending decision and set a deadline to decide — even without all the data. Practice "good enough to move forward".'},{icon:'🔍',text:'<strong>Observe:</strong> Notice the difference between analysis that adds value and analysis that postpones decision. You know how to distinguish — when you want to.'},{icon:'🌱',text:'<strong>Develop:</strong> Communication synthesis skills. You need analysis to function. The environment needs conclusions to move forward.'}] },
+    K:{ modelName:'COMPETITIVE', name:'The Accelerator', tagline:"You don't wait for ideal conditions. You create them as you move.", description:"You convert intention into action faster than most. Where others are still processing, you're already executing. Pressure doesn't paralyze you — it calibrates you. You decide with incomplete information because correcting in motion is more efficient than waiting for certainty.", strengths:['Decision and execution speed few can maintain','Superior performance under pressure and tight deadlines','Ability to generate results under imperfect conditions','Relentless clarity about what matters'], risks:['Speed that overrides quality in precision-requiring situations','Relational cost of moving faster than the team can follow','Resistance to processes that genuinely protect quality','Difficulty sustaining long projects without short result cycles'], pressure:'Peak pressure is where you function best. Decide, execute, adjust. Errors are process data.', decisions:'Decides by the criterion of impact on results. Accepts calculated risk. Doesn\'t need consensus to act.', actions:[{icon:'⚡',text:'<strong>This week:</strong> Before moving fast, ask: "who will be affected by this and what do they need to know?" One minute of alignment can save three days of reversal.'},{icon:'🔍',text:'<strong>Observe:</strong> Note the moments when you moved fast and had to go back. That data reveals when speed cost more than it delivered.'},{icon:'🌱',text:'<strong>Develop:</strong> Explicit feedback cycles in long projects. You work well with fast results — in projects without short cycles, create your own.'}] }
+  },
+  questions:[
+    {ctx:"Decision under pressure",q:"The meeting demands your position right now. You have half the information you'd need.",opts:[{k:'C',t:"Asks for 24h. Prefers a well-founded position to improvising."},{k:'M',t:"Takes 2 minutes to hear from whoever will be most affected — before giving any position."},{k:'E',t:"Presents what they know, names what they don't, proposes the most coherent option with available data."},{k:'K',t:"Gives the recommendation with what's available. Being wrong and correcting is more efficient than waiting."}]},
+    {ctx:"Group disagreement",q:"The group reached a consensus you think is wrong. The meeting is ending. No more time.",opts:[{k:'E',t:"Interrupts anyway. A wrong decision will cost more than a 5-minute delay."},{k:'K',t:"Accepts it and is already thinking about how to make the decision work."},{k:'C',t:"Formally registers the disagreement and then executes."},{k:'M',t:"Accepts, but notifies those who will be impacted before the official communication."}]},
+    {ctx:"Speed versus quality",q:"You can deliver in 3 days at 75% quality, or in 8 days at 100%.",opts:[{k:'M',t:"Calls the client first. Wants to understand what's behind the urgency."},{k:'K',t:"Delivers in 3 days. Whatever needs adjusting, adjusts later."},{k:'C',t:"Delivers in 8 days. A shortcut that generates rework is not a time gain."},{k:'E',t:"Proposes phased delivery: highest impact in 3 days, rest in 8."}]},
+    {ctx:"New environment, no structure",q:"First month in a new role. No defined process, overlapping roles.",opts:[{k:'C',t:"Maps the informal process and proposes a documented version."},{k:'M',t:"Invests weeks in conversations. Clarity will emerge from relationships."},{k:'K',t:"Identifies where they can make the most impact quickly and starts."},{k:'E',t:"Researches the history. Understanding why the disorder exists is a precondition for lasting order."}]},
+    {ctx:"Colleague conflict",q:"Two team members have been in open conflict for weeks. Work is still being delivered. It's not your job to resolve it.",opts:[{k:'C',t:"Doesn't interfere. If work is delivered, it's a management problem."},{k:'M',t:"Calls each separately. The tension affects them — prefers to try even without authority."},{k:'E',t:"Observes more before acting. Needs to understand if the conflict is interpersonal or structural."},{k:'K',t:"Acts when the conflict compromises delivery. Until then, not the right moment."}]},
+    {ctx:"Real-consequence mistake",q:"A mistake you made caused delay and client impact. You need to report it.",opts:[{k:'E',t:"'What happened, which premise was wrong, and what this changes in our approach.'"},{k:'K',t:"'What happened, the exact impact, and what I do in the next 48h to reverse the most possible.'"},{k:'C',t:"'What happened, where the process failed, and what we change to prevent recurrence.'"},{k:'M',t:"'What happened, who was affected and how, and what I'll do to make it right.'"}]},
+    {ctx:"Below-expected performance",q:"Someone on your team has been delivering below expectations for three months.",opts:[{k:'M',t:"Starts with: 'How have you been feeling about your work lately?'"},{k:'K',t:"Goes straight to: 'Your result is below target. What changes in the next 30 days?'"},{k:'C',t:"Starts with the role criteria: what was agreed versus what was delivered."},{k:'E',t:"First checks if something in the system is creating difficulty: expectations, resources, context."}]},
+    {ctx:"Setting priorities",q:"Three urgent demands arrived at the same time. You can handle two. Choose now.",opts:[{k:'E',t:"Evaluates which has the most impact on the long-term strategic objective."},{k:'C',t:"Checks which was most recently agreed with the clearest approval."},{k:'K',t:"Does the return-on-effort calculation: which delivers the most result with the least resource."},{k:'M',t:"Identifies which will cause the most negative impact on people if not done."}]},
+    {ctx:"Better approach mid-way",q:"The team is executing a plan. You see a significantly better way — but changing will delay.",opts:[{k:'C',t:"Continues the plan. Changing mid-way creates inconsistency and erodes team trust."},{k:'M',t:"Presents the idea to the team. If the majority wants to change, changes together."},{k:'K',t:"Implements the improvement in their part and shows the result. Evidence beats argument."},{k:'E',t:"Evaluates: does the gain justify the realignment cost?"}]},
+    {ctx:"Feedback you disagree with",q:"Your manager says you need to change something you believe is one of your strengths.",opts:[{k:'K',t:"Asks directly: 'If I change this, will my results improve? In what way?'"},{k:'C',t:"Checks if there is a formal role criterion supporting the feedback."},{k:'E',t:"Asks for examples: in what situations was that behavior observed?"},{k:'M',t:"Considers how much they trust the manager's perception before evaluating the content."}]},
+    {ctx:"Team delayed, critical deadline",q:"5 days left. Team is behind for different reasons per person.",opts:[{k:'M',t:"Treats each situation differently: support, clarity, and direct conversation depending on cause."},{k:'E',t:"Identifies which problem, if solved, will unlock the most capacity in 5 days."},{k:'C',t:"Redefines the work process: who does what, in what sequence, with what minimum criterion."},{k:'K',t:"Defines what needs to be delivered and communicates an explicit expectation to each person."}]},
+    {ctx:"Decision with human impact",q:"You receive a goal that will require reducing the team.",opts:[{k:'E',t:"Analyzes whether this goal actually solves the problem the organization needs to solve."},{k:'C',t:"Maps the correct process for how this should be done. Decisions like this have a protocol."},{k:'M',t:"First checks how to communicate this and who will be affected — before any operational decision."},{k:'K',t:"Evaluates what needs to be done, defines the plan and communicates. The decision is made."}]},
+    {ctx:"Result with high cost",q:"The project was delivered on time. But the team is exhausted and two people have resigned.",opts:[{k:'K',t:"The delivery was successful. Burnout is a real cost — but doesn't change the result."},{k:'C',t:"The delivery was successful. Burnout is data for planning the next cycle better."},{k:'E',t:"Technical result achieved, but long-term impact is still uncertain."},{k:'M',t:"Partially successful delivery. Burnout and people leaving signals the execution model was wrong."}]},
+    {ctx:"Implementing something you don't believe in",q:"You need to implement a change you believe is misguided — and depend on team buy-in.",opts:[{k:'C',t:"Implements according to the defined process. The decision was made by those with authority."},{k:'K',t:"Implements fast and measures. If it works, was wrong. If not, has data to propose change."},{k:'M',t:"Creates space for the team to express resistance before implementing."},{k:'E',t:"Escalates the disagreement with data before implementing. Not presenting the analysis is an omission."}]},
+    {ctx:"Choosing between goal and people",q:"Hitting 100% of the target would require pushing the team beyond reasonable. Without pressure, you reach 85%.",opts:[{k:'K',t:"Pushes for 100%. The goal is the goal. The team will manage two weeks."},{k:'M',t:"Talks with the team. If they want to give the extra effort, pushes together."},{k:'C',t:"Checks what was formally agreed as the success criterion."},{k:'E',t:"Evaluates what the 15% difference represents in the broader context. If marginal, preserves the team."}]},
+    {ctx:"Two members with opposing views",q:"Two highly capable team members advocate for completely different approaches.",opts:[{k:'C',t:"Defines which approach is more aligned with the established process."},{k:'E',t:"Asks each to present the argument against their own approach."},{k:'M',t:"Facilitates a conversation so each understands the other's perspective."},{k:'K',t:"Decides. The cost of the impasse is greater than a potentially imperfect decision."}]},
+    {ctx:"Unprecedented project, high visibility",q:"You were chosen to lead something the company has never done. No process, no internal reference.",opts:[{k:'C',t:"Looks for external references before starting from scratch."},{k:'E',t:"Defines what problem this project solves — before any solution."},{k:'M',t:"Maps who will be impacted. First understands who needs to come along."},{k:'K',t:"Defines the first quick delivery that creates evidence the project is working."}]},
+    {ctx:"Public feedback",q:"In the middle of a meeting, your manager criticizes your work in front of everyone — without warning.",opts:[{k:'E',t:"Evaluates the content regardless of context. If it has merit, agrees and proposes adjustment."},{k:'K',t:"Responds directly and closes the subject. What matters is that the work gets done well."},{k:'C',t:"Responds technically in the meeting. Afterwards, points out the process violation."},{k:'M',t:"Doesn't react much in the meeting. Afterwards, talks about how it affected the relationship."}]}
+  ]
+},
+es:{
+  htmlLang:'es', langFlag:'🇪🇸', langLabel:'ES',
+  intro:{ badge:'Un viaje de autoconocimiento', sub:'No vas a responder preguntas.\nVas a tomar decisiones.\nY tus patrones se revelarán solos.', btn:'Comenzar' },
+  ctx:{ title:'Antes de empezar', sub:'Tres preguntas rápidas para calibrar tu experiencia.', envLabel:'¿Dónde trabajas hoy?', envOptions:['Startup','Empresa tradicional','ONG / Impacto social','Autónomo / Creador','Otro'], areaLabel:'Tu área de trabajo', areaPlaceholder:'Ej: tecnología, educación, salud, marketing…', expLabel:'Tiempo de experiencia profesional', expOptions:['Principiante','1–3 años','3–5 años','5+ años'], btn:'Entrar al test' },
+  int2:{ eyebrow:'Pausa · Gravedad', title:'¿Qué está en el centro de cómo trabajas?', sub:'Haz clic en cada elemento para acercarlo o alejarlo del núcleo.', elements:['PROCESO','PERSONAS','ESTRATEGIA','DESEMPEÑO'], hint:'Haz clic en las esferas para ordenarlas por prioridad: la más cercana al centro es la más importante. Cada órbita debe tener un solo elemento.', btn:'Continuar →' },
+  int3:{ eyebrow:'Pausa · Trayectoria', title:'¿Cómo avanzas naturalmente hacia un objetivo?', sub:'Elige el camino que más se parece al tuyo.', hint:'Haz clic para seleccionar', paths:[{name:'Directa',desc:'Sin desvíos. Solo importa el destino.'},{name:'Estructurada',desc:'Paso a paso. Cada etapa verificada.'},{name:'Exploratoria',desc:'Múltiples caminos. El análisis revela la ruta.'},{name:'Conectada',desc:'A través de las personas correctas.'}] },
+  rev:{ sub:'Continúa. La constelación se está formando.' },
+  processing:{ text:'Conectando los puntos' },
+  result:{ modelLabel:'Perteneces al modelo:', dominantProfile:'Tu perfil predominante', howYouWork:'Cómo funcionas', whatYouDeliver:'Lo que entregas', whatSabotages:'Lo que puede sabotearte', underPressure:'Bajo presión', howYouDecide:'Cómo decides', actionTitle:'Qué hacer ahora', secondTrait:'Segundo rasgo · Modelo', secondTraitSuffix:(pct,n)=>`Con ${pct}% de tus respuestas, este patrón aparece como modificador — revelando cómo el <strong>${n}</strong> opera en situaciones específicas.`, scoresTitle:'Distribución de patrones', restart:'Repetir el test', expSuffix:'de experiencia' },
+  profiles:{
+    C:{ modelName:'CLÁSICO', name:'El Guardián', tagline:'Construyes sistemas que te sobreviven.', description:'Operas por proceso, estructura y consistencia. Los resultados confiables no nacen del brillo esporádico, sino de sistemas que funcionan cada día.', strengths:['Consistencia que otros no pueden replicar','Capacidad de crear estructura en entornos caóticos','Entrega de alta calidad sostenida','Claridad sobre roles, procesos y responsabilidades'], risks:['Resistencia al cambio necesario','Parálisis sin validación o precedente','Dificultad para ver a la persona detrás del rendimiento','Invisibilidad en culturas que premian la autopromoción'], pressure:'Busca precedente y validación antes de actuar.', decisions:'Decide según lo acordado, el estándar existente y el aval jerárquico.', actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Antes de aceptar cualquier nueva demanda, pregunta explícitamente: "¿cuál es el criterio de éxito aquí?"'},{icon:'🔍',text:'<strong>Observa:</strong> En los próximos 30 días, nota cuándo el proceso sirve a la entrega — y cuándo la impide.'},{icon:'🌱',text:'<strong>Desarrolla:</strong> Tolerancia controlada a la ambigüedad. No necesitas abandonar el proceso — necesitas saber cuándo el 80% de claridad ya es suficiente.'}] },
+    M:{ modelName:'MOTIVADOR', name:'El Catalizador', tagline:'No gestionas personas. Activas lo que ya son.', description:'Procesas el mundo a través de las personas. Antes de cualquier análisis técnico, lees el estado emocional de un grupo. Tu fortaleza no es lo que haces — es lo que liberas en los demás.', strengths:['Creación genuina de seguridad psicológica','Percepción de lo que está mal antes de aparecer en números','Equipos más cohesionados que la media','Mediación de conflictos que otros ignorarían'], risks:['Postergar decisiones difíciles para evitar incomodidad','Absorber el estado emocional del entorno','Confundir ser querido con tener influencia real','Invertir cuidado en entornos que no lo valoran'], pressure:'Primero verifica quién está siendo afectado y cómo.', decisions:'Decide considerando el impacto humano como variable equivalente al resultado.', actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> En la próxima decisión difícil, separa explícitamente lo que sientes de lo que el contexto exige.'},{icon:'🔍',text:'<strong>Observa:</strong> Nota cuándo estás postergando una conversación difícil. El costo del silencio casi siempre supera el de la incomodidad.'},{icon:'🌱',text:'<strong>Desarrolla:</strong> Criterios de resultado claros para ti mismo. Los entornos relacionales tienen métricas subjetivas — crea tus propios marcadores de avance.'}] },
+    E:{ modelName:'ESTRATÉGICO', name:'El Visionario', tagline:'No resuelves problemas. Disuelves las condiciones que los generan.', description:'Piensas en sistemas. Antes de responder una pregunta, verificas si esa es la pregunta correcta. Tu mayor contribución no es la respuesta que das — es la pregunta que solo tú haces.', strengths:['Distinguir el problema presentado del real','Visión de largo plazo que otros raramente alcanzan','Diagnóstico sistémico que previene problemas','Rigor analítico que protege decisiones impulsivas'], risks:['Análisis que se convierte en procrastinación','Dificultad para comunicar con quienes piensan diferente','Juicio implícito hacia quienes actúan sin análisis','Distancia de la ejecución'], pressure:'Intenta mapear variables y nombrar lo conocido vs. lo desconocido.', decisions:'Decide en base al análisis de trade-offs e impacto futuro.', actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Elige una decisión pendiente y establece un plazo para decidir — aunque no tengas todos los datos.'},{icon:'🔍',text:'<strong>Observa:</strong> Nota la diferencia entre análisis que agrega valor y análisis que posterga la decisión.'},{icon:'🌱',text:'<strong>Desarrolla:</strong> Síntesis para comunicación. Necesitas análisis para funcionar. El entorno necesita conclusiones para avanzar.'}] },
+    K:{ modelName:'COMPETITIVO', name:'El Acelerador', tagline:'No esperas las condiciones ideales. Las creas mientras avanzas.', description:'Conviertes intención en acción más rápido que la mayoría. La presión no te paraliza — te calibra. Decides con información incompleta porque corregir en movimiento es más eficiente que esperar.', strengths:['Velocidad de decisión que pocos mantienen','Rendimiento superior bajo presión','Capacidad de generar resultados en condiciones imperfectas','Claridad sobre lo que importa'], risks:['Velocidad que atropella la calidad','Costo relacional de avanzar más rápido que el equipo','Resistencia a procesos que protegen calidad','Dificultad para sostener proyectos largos'], pressure:'Bajo presión máxima es donde mejor funciona. Decide, ejecuta, ajusta.', decisions:'Decide por el criterio de impacto en resultado. Acepta riesgo calculado.', actions:[{icon:'⚡',text:'<strong>Esta semana:</strong> Antes de avanzar rápido, pregunta: "¿quién será afectado y qué necesita saber?"'},{icon:'🔍',text:'<strong>Observa:</strong> Nota los momentos en que avanzaste y tuviste que retroceder. Ese es el dato que revela cuándo la velocidad costó más de lo que entregó.'},{icon:'🌱',text:'<strong>Desarrolla:</strong> Ciclos de retroalimentación explícitos en proyectos largos. Funciones bien con resultados rápidos — en proyectos sin ciclos cortos, créalos tú mismo.'}] }
+  },
+  questions:[
+    {ctx:"Decisión bajo presión",q:"La reunión exige tu posición ahora. Tienes la mitad de la información que necesitarías.",opts:[{k:'C',t:"Pide 24h. Prefiere una posición fundamentada a improvisar."},{k:'M',t:"Toma 2 minutos para escuchar a quien más será afectado."},{k:'E',t:"Presenta lo que sabe, nombra lo que no, propone la opción más coherente con los datos."},{k:'K',t:"Da la recomendación con lo que tiene. Equivocarse y corregir es más eficiente."}]},
+    {ctx:"Desacuerdo grupal",q:"El grupo llegó a un consenso que crees incorrecto. La reunión termina. No hay más tiempo.",opts:[{k:'E',t:"Interrumpe. Una decisión equivocada costará más que el retraso de 5 minutos."},{k:'K',t:"Acepta y ya piensa en cómo hacer funcionar la decisión."},{k:'C',t:"Registra formalmente el desacuerdo y ejecuta."},{k:'M',t:"Acepta, pero avisa a los afectados antes de la comunicación oficial."}]},
+    {ctx:"Velocidad versus calidad",q:"Puedes entregar en 3 días con 75% de calidad, o en 8 días con 100%.",opts:[{k:'M',t:"Llama al cliente primero. Quiere entender qué hay detrás de la urgencia."},{k:'K',t:"Entrega en 3 días. Lo que necesite ajuste, lo ajusta después."},{k:'C',t:"Entrega en 8 días. Un atajo que genera retrabajo no es ganancia de tiempo."},{k:'E',t:"Propone entrega por fases: mayor impacto en 3 días, el resto en 8."}]},
+    {ctx:"Nuevo entorno sin estructura",q:"Primer mes en un nuevo cargo. Sin proceso definido, roles superpuestos.",opts:[{k:'C',t:"Mapea el proceso informal y propone una versión documentada."},{k:'M',t:"Invierte semanas en conversaciones. La claridad emergerá en las relaciones."},{k:'K',t:"Identifica dónde generar más impacto rápido y comienza."},{k:'E',t:"Investiga el historial. Entender por qué existe el desorden es condición para crear orden duradero."}]},
+    {ctx:"Conflicto entre colegas",q:"Dos personas del equipo llevan semanas en conflicto. El trabajo se sigue entregando. No es tu función resolverlo.",opts:[{k:'C',t:"No interfiere. Si el trabajo se entrega, es un problema gerencial."},{k:'M',t:"Llama a cada uno por separado. La tensión le afecta — prefiere intentarlo aunque no tenga autoridad."},{k:'E',t:"Observa más antes de actuar. Necesita entender si el conflicto es interpersonal o estructural."},{k:'K',t:"Actúa cuando el conflicto comprometa la entrega. Hasta entonces, no es el momento."}]},
+    {ctx:"Error con consecuencia real",q:"Un error tuyo causó retraso e impacto en el cliente. Debes reportarlo.",opts:[{k:'E',t:"'Qué pasó, qué premisa estaba equivocada, y qué cambia en nuestro enfoque.'"},{k:'K',t:"'Qué pasó, cuál es el impacto exacto, y qué hago en las próximas 48h para revertir.'"},{k:'C',t:"'Qué pasó, dónde falló el proceso, y qué cambiamos para no repetirlo.'"},{k:'M',t:"'Qué pasó, quién fue afectado y cómo, y qué haré para repararlo.'"}]},
+    {ctx:"Rendimiento por debajo de lo esperado",q:"Alguien de tu equipo lleva tres meses entregando por debajo de lo esperado.",opts:[{k:'M',t:"Empieza con: '¿Cómo te has sentido con tu trabajo últimamente?'"},{k:'K',t:"Va directo: 'Tu resultado está por debajo. ¿Qué cambia en los próximos 30 días?'"},{k:'C',t:"Empieza con los criterios del rol: lo acordado versus lo entregado."},{k:'E',t:"Primero verifica si hay algo en el sistema que dificulte: expectativas, recursos, contexto."}]},
+    {ctx:"Definición de prioridades",q:"Tres demandas urgentes llegaron al mismo tiempo. Puedes hacer dos. Elige ahora.",opts:[{k:'E',t:"Evalúa cuál tiene más impacto en el objetivo estratégico de largo plazo."},{k:'C',t:"Verifica cuál fue acordada más recientemente con aval más claro."},{k:'K',t:"Hace el cálculo de retorno de esfuerzo: cuál entrega más resultado con menos recurso."},{k:'M',t:"Identifica cuál causará más impacto negativo en las personas si no se hace."}]},
+    {ctx:"Mejor enfoque a mitad de camino",q:"El equipo está ejecutando. Ves una forma significativamente mejor — pero cambiar retrasará.",opts:[{k:'C',t:"Continúa el plan. Cambiar a mitad genera inconsistencia y consume la confianza del equipo."},{k:'M',t:"Presenta al equipo. Si la mayoría quiere cambiar, cambia junto."},{k:'K',t:"Implementa la mejora en su parte y muestra el resultado. La evidencia convence más que el argumento."},{k:'E',t:"Evalúa: ¿la ganancia justifica el costo de realineación?"}]},
+    {ctx:"Feedback con el que no concuerdas",q:"Tu gerente dice que necesitas cambiar algo que crees que es una de tus fortalezas.",opts:[{k:'K',t:"Pregunta directo: '¿Si cambio esto, mi resultado mejorará? ¿En qué?'"},{k:'C',t:"Verifica si hay criterio formal del rol que respalde el feedback."},{k:'E',t:"Pide ejemplos: ¿en qué situaciones fue observado ese comportamiento?"},{k:'M',t:"Considera cuánto confía en la percepción del gerente antes de evaluar el contenido."}]},
+    {ctx:"Equipo atrasado, plazo crítico",q:"Faltan 5 días. El equipo está atrasado por razones diferentes para cada persona.",opts:[{k:'M',t:"Trata cada situación diferente: apoyo, claridad y conversación directa según la causa."},{k:'E',t:"Identifica qué problema, si se resuelve, desbloqueará más capacidad en 5 días."},{k:'C',t:"Redefine el proceso: quién hace qué, en qué secuencia, con qué criterio mínimo."},{k:'K',t:"Define lo que debe entregarse y comunica expectativa explícita a cada persona."}]},
+    {ctx:"Decisión con impacto humano",q:"Recibes una meta que requerirá reducir el equipo.",opts:[{k:'E',t:"Analiza si esta meta realmente resuelve el problema que la organización necesita resolver."},{k:'C',t:"Mapea el proceso correcto de cómo debe hacerse. Decisiones así tienen protocolo."},{k:'M',t:"Primero verifica cómo comunicarlo y quién será afectado — antes de cualquier decisión operacional."},{k:'K',t:"Evalúa qué debe hacerse, define el plan y comunica. La decisión está tomada."}]},
+    {ctx:"Resultado con alto costo",q:"El proyecto fue entregado a tiempo. Pero el equipo está agotado y dos personas renunciaron.",opts:[{k:'K',t:"La entrega fue exitosa. El desgaste es un costo real — pero no cambia el resultado."},{k:'C',t:"La entrega fue exitosa. El desgaste es dato para planificar el próximo ciclo mejor."},{k:'E',t:"Resultado técnico alcanzado, pero el impacto a largo plazo aún es incierto."},{k:'M',t:"Entrega parcialmente exitosa. El agotamiento y la pérdida de personas señala que el modelo estaba mal."}]},
+    {ctx:"Implementar algo en lo que no crees",q:"Necesitas implementar un cambio que crees equivocado — y dependes de la adhesión del equipo.",opts:[{k:'C',t:"Implementa según el proceso definido. La decisión fue tomada por quien tiene autoridad."},{k:'K',t:"Implementa rápido y mide. Si funciona, estaba equivocado. Si no, tiene datos para proponer cambio."},{k:'M',t:"Crea espacio para que el equipo exprese resistencias antes de implementar."},{k:'E',t:"Escala el desacuerdo con datos antes de implementar. No presentar el análisis es omisión."}]},
+    {ctx:"Elegir entre meta y personas",q:"Para el 100% necesitarías presionar al equipo más allá de lo razonable. Sin presión, llegas al 85%.",opts:[{k:'K',t:"Presiona para el 100%. La meta es la meta. El equipo aguantará dos semanas."},{k:'M',t:"Conversa con el equipo. Si quieren dar el extra, presiona junto."},{k:'C',t:"Verifica qué fue formalmente acordado como criterio de éxito."},{k:'E',t:"Evalúa qué representa la diferencia del 15% en el contexto mayor. Si es marginal, preserva al equipo."}]},
+    {ctx:"Dos miembros con visiones opuestas",q:"Dos miembros muy capaces defienden enfoques completamente diferentes.",opts:[{k:'C',t:"Define cuál enfoque está más alineado al proceso establecido."},{k:'E',t:"Pide a cada uno que presente el argumento contra su propio enfoque."},{k:'M',t:"Facilita una conversación para que cada uno entienda el punto de vista del otro."},{k:'K',t:"Decide. El costo del impasse es mayor que el de una decisión imperfecta."}]},
+    {ctx:"Proyecto inédito, alta visibilidad",q:"Te eligieron para liderar algo que la empresa nunca hizo. Sin proceso, sin referencia.",opts:[{k:'C',t:"Busca referencias externas antes de empezar desde cero."},{k:'E',t:"Define qué problema resuelve este proyecto — antes que cualquier solución."},{k:'M',t:"Mapea quién será impactado. Primero entiende quién necesita sumarse."},{k:'K',t:"Define la primera entrega rápida que crea evidencia de que el proyecto funciona."}]},
+    {ctx:"Feedback en público",q:"En plena reunión, tu gerente critica tu trabajo frente a todos — sin aviso previo.",opts:[{k:'E',t:"Evalúa el contenido independiente del contexto. Si tiene fundamento, concuerda y propone ajuste."},{k:'K',t:"Responde directo y cierra el tema. Lo que importa es que el trabajo se haga bien."},{k:'C',t:"Responde técnicamente en la reunión. Después, señala que el feedback en público sin aviso no es el proceso correcto."},{k:'M',t:"No reacciona mucho en la reunión. Después habla sobre cómo aquello afectó la relación."}]}
+  ]
+}
+};
+
+// ══════════════════════════════════════════════════
+// COSMOS CANVAS
+// ══════════════════════════════════════════════════
+(function(){
+  const c=document.getElementById('cosmos'),x=c.getContext('2d');
+  let W,H,stars=[],particles=[];
+  const cols=['rgba(200,75,158,','rgba(123,47,255,','rgba(59,130,246,','rgba(255,140,0,','rgba(255,215,0,'];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  function init(){
+    stars=[];for(let i=0;i<200;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2,a:Math.random()*.5+.1,tw:Math.random()*3+2,tp:Math.random()*Math.PI*2});
+    particles=[];for(let i=0;i<55;i++){const cl=cols[Math.floor(Math.random()*cols.length)];particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+1,a:Math.random()*.35+.08,cl});}
+  }
+  let t=0;
+  function draw(){
+    x.clearRect(0,0,W,H);t+=.01;
+    stars.forEach(s=>{const a=s.a*(.5+.5*Math.sin(t*s.tw+s.tp));x.beginPath();x.arc(s.x,s.y,s.r,0,Math.PI*2);x.fillStyle=`rgba(255,255,255,${a})`;x.fill();});
+    particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fillStyle=p.cl+p.a+')';x.fill();});
+    let g=x.createRadialGradient(W*.3,H*.4,0,W*.3,H*.4,W*.4);g.addColorStop(0,'rgba(123,47,255,.03)');g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,0,W,H);
+    let g2=x.createRadialGradient(W*.7,H*.6,0,W*.7,H*.6,W*.35);g2.addColorStop(0,'rgba(200,75,158,.025)');g2.addColorStop(1,'transparent');x.fillStyle=g2;x.fillRect(0,0,W,H);
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{resize();init();});
+  resize();init();draw();
+})();
+
+// ══════════════════════════════════════════════════
+// CONSTELLATION OVERLAY
+// ══════════════════════════════════════════════════
+const Constellation = (function(){
+  const canvas = document.getElementById('constellation-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  const stars = [];
+  // Model zones: normalized x,y + color
+  const ZONES = {
+    K:{x:.78,y:.72,r:'239,68,68'},
+    C:{x:.22,y:.72,r:'99,102,241'},
+    E:{x:.78,y:.28,r:'245,158,11'},
+    M:{x:.22,y:.28,r:'16,185,129'}
+  };
+
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function addStar(model){
+    const z = ZONES[model];
+    const spread = Math.min(W,H)*0.12;
+    stars.push({
+      x: z.x*W + (Math.random()-.5)*spread,
+      y: z.y*H + (Math.random()-.5)*spread,
+      r: Math.random()*2.2+0.6,
+      a: 0, ta: Math.random()*.55+.2,
+      model, c: z.r,
+      born: Date.now(),
+      vx:(Math.random()-.5)*.15, vy:(Math.random()-.5)*.15
+    });
+  }
+
+  let t=0;
+  function draw(){
+    requestAnimationFrame(draw);
+    ctx.clearRect(0,0,W,H);
+    t+=.008;
+    stars.forEach(s=>{
+      if(s.a < s.ta) s.a = Math.min(s.ta, s.a+.006);
+      const tw = s.a*(0.65+0.35*Math.sin(t*2+s.x*0.01));
+      // glow
+      const g = ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*5);
+      g.addColorStop(0,`rgba(${s.c},${tw*0.5})`);
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,s.r*5,0,Math.PI*2); ctx.fill();
+      // core
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${s.c},${tw})`; ctx.fill();
+    });
+    // connections
+    for(let i=0;i<stars.length;i++){
+      for(let j=i+1;j<stars.length;j++){
+        const a=stars[i], b=stars[j];
+        if(a.model!==b.model) continue;
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d>Math.min(W,H)*0.28) continue;
+        const al=(1-d/(Math.min(W,H)*0.28))*0.18*Math.min(a.a,b.a);
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(${a.c},${al})`; ctx.lineWidth=.6; ctx.stroke();
+      }
+    }
+  }
+  draw();
+  return { addStar, stars };
+})();
+
+// ══════════════════════════════════════════════════
+// LANG ENGINE
+// ══════════════════════════════════════════════════
+let currentLang = localStorage.getItem('ctd_lang')||'pt';
+let T = TRANS[currentLang];
+
+function toggleLang(e){ e.stopPropagation(); document.getElementById('lang-wrap').classList.toggle('open'); }
+document.addEventListener('click',()=>document.getElementById('lang-wrap').classList.remove('open'));
+
+function setLang(lang){
+  if(lang===currentLang){ document.getElementById('lang-wrap').classList.remove('open'); return; }
+  currentLang=lang; T=TRANS[lang]; localStorage.setItem('ctd_lang',lang);
+  document.getElementById('lang-wrap').classList.remove('open');
+  document.getElementById('lang-flag').textContent=T.langFlag;
+  document.getElementById('lang-label').textContent=T.langLabel;
+  document.getElementById('html-root').lang=T.htmlLang;
+  document.querySelectorAll('.lang-option').forEach(o=>o.classList.toggle('active',o.dataset.lang===lang));
+  applyTranslations(true);
+}
+
+function applyTranslations(anim=false){
+  T=TRANS[currentLang];
+  document.getElementById('html-root').lang=T.htmlLang;
+  document.getElementById('lang-flag').textContent=T.langFlag;
+  document.getElementById('lang-label').textContent=T.langLabel;
+  const screens=document.querySelectorAll('.screen:not(.hidden)');
+  function doUpdate(){
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const v=getKey(T,el.dataset.i18n);
+      if(v!==undefined) el.textContent=typeof v==='string'?v:'';
+    });
+    const ai=document.getElementById('area-input'); if(ai) ai.placeholder=T.ctx.areaPlaceholder;
+    buildChips();
+    const qs=document.getElementById('q-screen');
+    if(qs&&!qs.classList.contains('hidden')&&shuffledQ.length) renderQ();
+  }
+  if(anim){ screens.forEach(s=>s.classList.add('lang-fade-out')); setTimeout(()=>{ doUpdate(); screens.forEach(s=>{s.classList.remove('lang-fade-out');s.classList.add('lang-fade-in');}); setTimeout(()=>screens.forEach(s=>s.classList.remove('lang-fade-in')),300); },180); }
+  else doUpdate();
+}
+function getKey(obj,path){ return path.split('.').reduce((a,k)=>a&&a[k],obj); }
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let ctxData = {env:'',envVal:'',area:'',exp:'',expVal:''};
+let shuffledQ=[],current=0,answers=[];
+let intScores={C:0,M:0,E:0,K:0};
+
+// ══════════════════════════════════════════════════
+// CHIPS
+// ══════════════════════════════════════════════════
+function buildChips(){
+  const eW=document.getElementById('chips-env'), xW=document.getElementById('chips-exp');
+  if(!eW||!xW) return;
+  const eVal=ctxData.envVal, xVal=ctxData.expVal;
+  const eVals=['startup','tradicional','ong','autonomo','otro'];
+  eW.innerHTML='';
+  T.ctx.envOptions.forEach((lbl,i)=>{
+    const v=eVals[i];
+    const c=document.createElement('div');
+    c.className='ctx-chip'+(eVal===v?' active':'');
+    c.dataset.g='env'; c.dataset.v=v; c.textContent=lbl;
+    c.addEventListener('click',()=>{ document.querySelectorAll('.ctx-chip[data-g="env"]').forEach(x=>x.classList.remove('active')); c.classList.add('active'); ctxData.env=lbl; ctxData.envVal=v; checkCtx(); });
+    eW.appendChild(c);
+  });
+  const xVals=['iniciante','1-3','3-5','5+'];
+  xW.innerHTML='';
+  T.ctx.expOptions.forEach((lbl,i)=>{
+    const v=xVals[i];
+    const c=document.createElement('div');
+    c.className='ctx-chip'+(xVal===v?' active':'');
+    c.dataset.g='exp'; c.dataset.v=v; c.textContent=lbl;
+    c.addEventListener('click',()=>{ document.querySelectorAll('.ctx-chip[data-g="exp"]').forEach(x=>x.classList.remove('active')); c.classList.add('active'); ctxData.exp=lbl; ctxData.expVal=v; checkCtx(); });
+    xW.appendChild(c);
+  });
+}
+function checkCtx(){ const a=document.getElementById('area-input').value.trim(); ctxData.area=a; document.getElementById('btn-ctx-go').classList.toggle('ready',!!(ctxData.envVal&&a.length>1&&ctxData.expVal)); }
+
+// ══════════════════════════════════════════════════
+// FLOW
+// ══════════════════════════════════════════════════
+function goCtx(){ show('ctx-screen'); }
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+
+function startTest(){
+  shuffledQ=shuffle(T.questions).map(q=>({...q,opts:shuffle(q.opts)}));
+  current=0; answers=[]; intScores={C:0,M:0,E:0,K:0};
+  show('q-screen'); renderQ();
+}
+
+// CHECKPOINTS: after q index 4 → tresmovimentos; after 9 → revelation+gravidade; after 14 → trajetória
+const CHECKPOINTS={5:'tresmovimentos',10:'gravidade-reveal',15:'trajetoria'};
+
+function renderQ(){
+  const total=shuffledQ.length;
+  const q=shuffledQ[current];
+  document.getElementById('prog-fill').style.width=`${(current/total)*100}%`;
+  document.getElementById('q-counter').textContent=`${current+1} / ${total}`;
+  document.getElementById('btn-back').disabled=(current===0);
+  const content=document.getElementById('q-content');
+  content.classList.remove('q-enter'); void content.offsetWidth; content.classList.add('q-enter');
+  document.getElementById('q-ctx-tag').textContent=q.ctx;
+  document.getElementById('q-text').textContent=q.q;
+  const optsEl=document.getElementById('opts'); optsEl.innerHTML='';
+  const letters=['A','B','C','D'];
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button'); btn.className='opt-btn';
+    if(answers[current]&&answers[current]===opt.k) btn.classList.add('selected');
+    btn.innerHTML=`<span class="opt-letter">${letters[i]}</span><span>${opt.t}</span>`;
+    btn.addEventListener('click',()=>selectOpt(opt.k,btn));
+    optsEl.appendChild(btn);
+  });
+}
+
+function selectOpt(key,btn){
+  answers[current]=key;
+  Constellation.addStar(key);
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  setTimeout(()=>{
+    current++;
+    const cp=CHECKPOINTS[current];
+    if(cp==='tresmovimentos'){ initTresMovimentos(); show('int-tresmovimentos'); }
+    else if(cp==='gravidade-reveal'){ showMicroRevelation(()=>{ initGravidade(); show('int-gravidade'); }); }
+    else if(cp==='trajetoria'){ initTrajetoria(); show('int-trajetoria'); }
+    else if(current>=shuffledQ.length){ doProcessing(); }
+    else { show('q-screen'); renderQ(); }
+  },440);
+}
+
+function goBack(){
+  if(current===0) return;
+  current--;
+  show('q-screen'); renderQ();
+}
+
+// ══════════════════════════════════════════════════
+// MICRO REVELATION
+// ══════════════════════════════════════════════════
+function showMicroRevelation(callback){
+  // determine leading model so far
+  const sc={C:0,M:0,E:0,K:0};
+  answers.forEach(k=>{ if(k) sc[k]++; });
+  const top=Object.entries(sc).sort((a,b)=>b[1]-a[1])[0][0];
+  const prof=T.profiles[top];
+  const msgs={
+    pt:{C:'Você busca estrutura antes de agir.',M:'Você considera as pessoas antes de decidir.',E:'Você questiona o problema antes de resolvê-lo.',K:'Você age antes de ter certeza.'},
+    en:{C:'You seek structure before acting.',M:'You consider people before deciding.',E:'You question the problem before solving it.',K:'You act before having certainty.'},
+    es:{C:'Buscas estructura antes de actuar.',M:'Consideras a las personas antes de decidir.',E:'Cuestionas el problema antes de resolverlo.',K:'Actúas antes de tener certeza.'}
+  };
+  document.getElementById('rev-text').textContent=msgs[currentLang][top];
+  const rv=document.getElementById('micro-revelation');
+  rv.classList.add('visible');
+  setTimeout(()=>{ rv.classList.remove('visible'); setTimeout(callback,600); }, 3000);
+}
+
+// ══════════════════════════════════════════════════
+// INTERACTION 1: TRÊS MOVIMENTOS (v3)
+// Slider nativo para M1 — zero bugs de arrasto.
+// M2: escala 5 pontos. M3: 4 cards de escolha.
+// tmCalculate(): soma a intScores e avança o fluxo.
+// tmSoftReset(): reseta só os controles desta tela.
+// IDs e funções prefixados com "tm" — sem colisão.
+// ══════════════════════════════════════════════════
+
+// ── Estado isolado ────────────────────────────────
+const tmState = { s1: null, s2: null, s3: null };
+
+// ── Labels do slider M1 ───────────────────────────
+const TM_SLIDER_LABELS = [
+  'Estrutura me energiza muito mais',
+  'Estrutura me energiza um pouco mais',
+  'Nos dois igualmente',
+  'Complexidade me energiza um pouco mais',
+  'Complexidade me energiza muito mais'
+];
+
+// ── Labels da escala M2 ───────────────────────────
+const TM_SCALE_LABELS = [
+  'Confio na minha análise — ajo e comunico depois',
+  'Geralmente ajo pela análise, mas com alguma leitura do grupo',
+  'Equilibrio os dois conforme o contexto',
+  'Geralmente preciso sentir o grupo antes de agir',
+  'Preciso da leitura do grupo — ela é minha principal referência'
+];
+
+// ── Entry point (chamado pelo fluxo do teste) ─────
+function initTresMovimentos() {
+  // Reseta estado e UI
+  tmState.s1 = null; tmState.s2 = null; tmState.s3 = null;
+
+  const sl = document.getElementById('tm-slider1');
+  if (sl) {
+    sl.value = 50;
+    sl.style.background = '';
+  }
+  const slLbl = document.getElementById('tm-slider1-label');
+  if (slLbl) { slLbl.textContent = ''; slLbl.classList.remove('visible'); }
+
+  document.querySelectorAll('#tm-scale2-track .tm-scale-btn')
+    .forEach(b => b.classList.remove('selected'));
+  const sc2lbl = document.getElementById('tm-scale2-label');
+  if (sc2lbl) { sc2lbl.textContent = ''; sc2lbl.classList.remove('visible'); }
+
+  document.querySelectorAll('#tm-temporal-grid .tm-tcard')
+    .forEach(c => c.classList.remove('selected'));
+
+  tmUpdateProgress();
+}
+
+// ── M1: slider nativo (oninput / onchange no HTML) ───
+function tmOnSlider1(val) {
+  tmState.s1 = parseInt(val);
+  const idx = Math.round((val / 100) * 4);
+  const lbl = document.getElementById('tm-slider1-label');
+  if (lbl) { lbl.textContent = TM_SLIDER_LABELS[idx]; lbl.classList.add('visible'); }
+  // gradient fill that follows thumb
+  document.getElementById('tm-slider1').style.background =
+    `linear-gradient(to right, rgba(99,102,241,.6) 0%, rgba(200,75,158,.8) ${val}%, rgba(255,255,255,.1) ${val}%)`;
+  tmUpdateProgress();
+}
+
+function tmResetSlider1() {
+  tmState.s1 = null;
+  const sl = document.getElementById('tm-slider1');
+  if (sl) { sl.value = 50; sl.style.background = ''; }
+  const lbl = document.getElementById('tm-slider1-label');
+  if (lbl) { lbl.classList.remove('visible'); }
+  tmUpdateProgress();
+}
+
+// ── M2: 5-point scale ─────────────────────────────
+function tmOnScale2(val) {
+  tmState.s2 = val;
+  document.querySelectorAll('#tm-scale2-track .tm-scale-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.val) === val);
+  });
+  const lbl = document.getElementById('tm-scale2-label');
+  if (lbl) { lbl.textContent = TM_SCALE_LABELS[val - 1]; lbl.classList.add('visible'); }
+  tmUpdateProgress();
+}
+
+function tmResetScale2() {
+  tmState.s2 = null;
+  document.querySelectorAll('#tm-scale2-track .tm-scale-btn')
+    .forEach(b => b.classList.remove('selected'));
+  const lbl = document.getElementById('tm-scale2-label');
+  if (lbl) { lbl.textContent = ''; lbl.classList.remove('visible'); }
+  tmUpdateProgress();
+}
+
+// ── M3: temporal cards ────────────────────────────
+function tmOnTemporal(model, el) {
+  tmState.s3 = model;
+  document.querySelectorAll('#tm-temporal-grid .tm-tcard')
+    .forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  tmUpdateProgress();
+}
+
+function tmResetTemporal() {
+  tmState.s3 = null;
+  document.querySelectorAll('#tm-temporal-grid .tm-tcard')
+    .forEach(c => c.classList.remove('selected'));
+  tmUpdateProgress();
+}
+
+// ── Progress → enable/disable Continue ───────────
+function tmUpdateProgress() {
+  const done = [tmState.s1 !== null, tmState.s2 !== null, tmState.s3 !== null]
+    .filter(Boolean).length;
+  const allDone = done === 3;
+  const btn  = document.getElementById('tm-btn-continue');
+  const hint = document.getElementById('tm-progress-hint');
+  if (btn)  btn.classList.toggle('active', allDone);
+  if (hint) hint.style.opacity = allDone ? '0' : '1';
+}
+
+// ── Reset (apenas controles — não toca intScores) ─
+function tmSoftReset() { initTresMovimentos(); }
+
+// ── Scoring + advance ─────────────────────────────
+// Chamado pelo botão "Continuar →".
+// Soma pontos ao intScores global e avança com show()+renderQ().
+// NÃO exibe painel de resultado local.
+function tmCalculate() {
+  if (tmState.s1 === null || tmState.s2 === null || tmState.s3 === null) return;
+
+  // M1: slider 0–100
+  // ≤20 → estrutura forte (C,K +0.8) | ≤40 → estrutura leve (C,K +0.4)
+  // ≥80 → complexidade forte (E,M +0.8) | ≥60 → complexidade leve (E,M +0.4)
+  const s1 = tmState.s1;
+  if      (s1 <= 20) { intScores.C += 0.8; intScores.K += 0.8; }
+  else if (s1 <= 40) { intScores.C += 0.4; intScores.K += 0.4; }
+  else if (s1 >= 80) { intScores.E += 0.8; intScores.M += 0.8; }
+  else if (s1 >= 60) { intScores.E += 0.4; intScores.M += 0.4; }
+  // 41–59 → neutro (zero)
+
+  // M2: scale 1–5
+  // 1 → autônomo forte (C,E,K +0.6) | 2 → autônomo leve (+0.3)
+  // 4–5 → grupo (M +0.6) | 3 → neutro
+  const s2 = tmState.s2;
+  if      (s2 === 1) { intScores.C += 0.6; intScores.E += 0.6; intScores.K += 0.6; }
+  else if (s2 === 2) { intScores.C += 0.3; intScores.E += 0.3; intScores.K += 0.3; }
+  else if (s2 === 4) { intScores.M += 0.6; }
+  else if (s2 === 5) { intScores.M += 0.6; }
+
+  // M3: +1.0 direto ao modelo escolhido (C / M / E / K)
+  intScores[tmState.s3] += 1.0;
+
+  // Avança o fluxo principal do teste
+  show('q-screen');
+  renderQ();
+}
+
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// INTERACTION 2: GRAVIDADE (v3)
+// — 4 órbitas, swap sem empate, score SÓ em completeGravidade
+// — BUG DE ACÚMULO DE PONTOS ELIMINADO: intScores nunca é
+//   tocado dentro de cycleGravEl. Pontuação calculada apenas
+//   uma vez, em completeGravidade(), com base na posição final.
+// ══════════════════════════════════════════════════
+let gravState = { elements: [] };
+let gravFirstClick = false; // tooltip proativa: dispara só no 1º clique da sessão
+
+// Modelos alinhados à ordem dos elements[] nas traduções
+// PROCESSO→C, PESSOAS→M, ESTRATÉGIA→E, PERFORMANCE→K
+const GRAV_MODELS  = ['C','M','E','K'];
+
+// 4 ângulos fixos (um por quadrante) — cada elemento ocupa sempre o mesmo ângulo
+const GRAV_ANGLES  = [225, 315, 135, 45]; // graus
+
+// Frações de raio para cada prioridade (1=mais perto … 4=mais longe)
+const GRAV_RADII   = { 1: 0.26, 2: 0.50, 3: 0.74, 4: 0.95 };
+
+// Pesos de pontuação (calculados APENAS em completeGravidade)
+const GRAV_WEIGHTS = { 1: 0.6, 2: 0.4, 3: 0.2, 4: 0 };
+
+// ── Inicialização ────────────────────────────────
+function initGravidade(){
+  const scene = document.getElementById('grav-scene');
+  const size  = scene.offsetWidth || 280;
+
+  // 4 anéis concêntricos
+  const rings = document.getElementById('grav-rings');
+  rings.innerHTML = '';
+  [0.52, 1.0, 1.48, 1.9].forEach((f, ri) => {
+    const r = document.createElement('div');
+    r.className = 'grav-ring';
+    r.dataset.ringIdx = ri;
+    const d = size * f * 0.50;           // diâmetro proporcional
+    r.style.width  = d + 'px';
+    r.style.height = d + 'px';
+    rings.appendChild(r);
+  });
+
+  // Remove elementos de execução anterior
+  document.querySelectorAll('.grav-element').forEach(e => e.remove());
+
+  // Tooltip (criado uma vez no DOM)
+  if (!document.getElementById('grav-tip')) {
+    const tip = document.createElement('div');
+    tip.id = 'grav-tip';
+    tip.className = 'grav-tooltip';
+    document.body.appendChild(tip);
+  }
+
+  // Distribui os 4 elementos nas 4 prioridades (1 por órbita, sem empate)
+  gravState.elements = T.int2.elements.map((lbl, i) => {
+    const model    = GRAV_MODELS[i];
+    const priority = i + 1;              // começa: el[0]→p1, el[1]→p2, el[2]→p3, el[3]→p4
+    const state    = { model, lbl, priority, idx: i };
+
+    const el = document.createElement('div');
+    el.className = 'grav-element gp' + priority;
+
+    el.innerHTML = `
+      <div class="grav-sphere" style="width:40px;height:40px">${lbl.substring(0,2)}</div>
+      <div class="grav-label">${lbl}</div>
+      <div class="grav-state-dots">
+        <div class="grav-state-dot"></div>
+        <div class="grav-state-dot"></div>
+        <div class="grav-state-dot"></div>
+        <div class="grav-state-dot"></div>
+      </div>`;
+
+    // Posiciona sem animação na carga inicial
+    el.style.transition = 'none';
+    scene.appendChild(el);
+    _placeGravEl(el, state, size);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = '';          // reativa transição CSS após pintura
+    }));
+
+    el.addEventListener('click', (ev) => cycleGravEl(state, el, size, ev));
+    el.addEventListener('touchstart', (ev) => {
+      ev.preventDefault();
+      cycleGravEl(state, el, size, ev);
+    }, { passive: false });
+
+    return { state, el };
+  });
+
+  highlightActiveRings();
+}
+
+// ── Posicionamento (left/top) ────────────────────
+function _placeGravEl(el, state, size){
+  const angle = (GRAV_ANGLES[state.idx] * Math.PI) / 180;
+  const r     = (size / 2) * GRAV_RADII[state.priority];
+  const cx    = size / 2,  cy = size / 2;
+  const half  = 28;         // metade visual do elemento (40px esfera + gap)
+  el.style.left = (cx + Math.cos(angle) * r - half) + 'px';
+  el.style.top  = (cy + Math.sin(angle) * r - half) + 'px';
+
+  // Classe visual de prioridade
+  el.className = 'grav-element gp' + state.priority;
+
+  // Atualiza os 4 dots
+  _updateDots(el, state.priority);
+
+  // Ilumina anel correspondente
+  highlightActiveRings();
+}
+
+// ── Dots (4 pontos, lit = prioridade atual) ──────
+function _updateDots(el, priority){
+  // p1 → 4 acesos (●●●●), p2 → 3 (●●●○), p3 → 2 (●●○○), p4 → 1 (●○○○)
+  const lit = 5 - priority;             // p1→4, p2→3, p3→2, p4→1
+  el.querySelectorAll('.grav-state-dot').forEach((d, i) => {
+    d.classList.toggle('lit', i < lit);
+  });
+}
+
+// ── Ilumina os anéis que têm elementos ───────────
+function highlightActiveRings(){
+  const ringEls = document.querySelectorAll('.grav-ring');
+  ringEls.forEach((r, i) => {
+    const priority = i + 1;
+    const occupied = gravState.elements.some(e => e.state.priority === priority);
+    r.classList.toggle('active-ring', occupied);
+    r.classList.toggle('p1', priority === 1 && occupied);
+  });
+}
+
+// ── Tooltip proativa (1ª vez na sessão) ──────────
+function _showGravTooltip(el){
+  if (gravFirstClick) return;
+  gravFirstClick = true;
+  const tip = document.getElementById('grav-tip');
+  const msgs = {
+    pt: 'Clique de novo para mudar a ordem de prioridade',
+    en: 'Click again to change the priority order',
+    es: 'Haz clic de nuevo para cambiar el orden de prioridad'
+  };
+  tip.textContent = msgs[currentLang] || msgs.pt;
+  const rect = el.getBoundingClientRect();
+  tip.style.left = Math.max(8, rect.left + rect.width / 2 - 110) + 'px';
+  tip.style.top  = (rect.top - 44) + 'px';
+  tip.classList.add('show');
+  setTimeout(() => tip.classList.remove('show'), 1500);
+}
+
+// ── Clique: avança prioridade + swap ─────────────
+// NENHUMA escrita em intScores aqui — bug de acúmulo eliminado.
+function cycleGravEl(state, el, size, ev){
+  _showGravTooltip(el);
+
+  const nextPriority = (state.priority % 4) + 1;  // 1→2→3→4→1
+
+  // Procura se há outro elemento na prioridade de destino
+  const other = gravState.elements.find(
+    e => e.state !== state && e.state.priority === nextPriority
+  );
+
+  if (other) {
+    // Swap: o outro assume a prioridade atual deste
+    other.state.priority = state.priority;
+    _placeGravEl(other.el, other.state, size);
+  }
+
+  // Move este para a próxima prioridade
+  state.priority = nextPriority;
+  _placeGravEl(el, state, size);
+}
+
+// ── Completa a dinâmica: pontuação calculada UMA VEZ ──
+// Baseia-se exclusivamente na posição FINAL de cada elemento.
+// Pesos: p1=+0.6, p2=+0.4, p3=+0.2, p4=+0
+function completeGravidade(){
+  gravState.elements.forEach(({ state }) => {
+    const pts = GRAV_WEIGHTS[state.priority] || 0;
+    if (pts > 0) intScores[state.model] += pts;
+  });
+  show('q-screen');
+  renderQ();
+}
+
+function updateGravStatus(){ /* mantido para compatibilidade — sem uso ativo */ }
+
+// ══════════════════════════════════════════════════
+// INTERACTION 3: TRAJETÓRIA
+// ══════════════════════════════════════════════════
+const TRAJ_MODELS=['K','C','E','M'];
+const TRAJ_COLORS=['#ef4444','#6366f1','#f59e0b','#10b981'];
+
+function initTrajetoria(){
+  const wrap=document.getElementById('traj-wrap'); wrap.innerHTML='';
+  T.int3.paths.forEach((p,i)=>{
+    const model=TRAJ_MODELS[i];
+    const color=TRAJ_COLORS[i];
+    const div=document.createElement('div');
+    div.className='traj-path';
+    div.style.setProperty('--traj-color',color);
+    div.innerHTML=`
+      <div class="traj-visual">${makeTrajSVG(i,color)}</div>
+      <div class="traj-info">
+        <div class="traj-name">${p.name}</div>
+        <div class="traj-desc">${p.desc}</div>
+      </div>`;
+    div.addEventListener('click',()=>selectTrajetoria(model,div));
+    wrap.appendChild(div);
+  });
+}
+
+function makeTrajSVG(i,color){
+  const paths=[
+    `<line x1="4" y1="20" x2="76" y2="20" stroke="${color}" stroke-width="1.5" stroke-dasharray="0"/><circle cx="76" cy="20" r="3" fill="${color}"/>`,
+    `<circle cx="16" cy="20" r="3" fill="${color}" opacity=".4"/><circle cx="32" cy="20" r="3" fill="${color}" opacity=".6"/><circle cx="48" cy="20" r="3" fill="${color}" opacity=".8"/><circle cx="64" cy="20" r="3" fill="${color}"/>`,
+    `<path d="M4,20 Q20,4 38,20 Q56,36 72,20" stroke="${color}" stroke-width="1.5" fill="none"/><line x1="38" y1="20" x2="48" y2="10" stroke="${color}" stroke-width="1" opacity=".5"/><line x1="38" y1="20" x2="28" y2="10" stroke="${color}" stroke-width="1" opacity=".5"/>`,
+    `<path d="M4,20 C16,6 24,34 40,20 C56,6 64,34 76,20" stroke="${color}" stroke-width="1.5" fill="none"/>`
+  ];
+  return `<svg class="traj-svg" viewBox="0 0 80 40">${paths[i]}</svg>`;
+}
+
+function selectTrajetoria(model,div){
+  document.querySelectorAll('.traj-path').forEach(p=>p.classList.remove('selected'));
+  div.classList.add('selected');
+  intScores[model]+=2;
+  setTimeout(()=>{ show('q-screen'); renderQ(); }, 480);
+}
+
+// ══════════════════════════════════════════════════
+// PROCESSING + RESULT
+// ══════════════════════════════════════════════════
+function doProcessing(){
+  document.getElementById('constellation-canvas').classList.add('bright');
+  show('processing');
+  setTimeout(buildResult,2800);
+}
+
+function buildResult(){
+  const total=shuffledQ.length;
+  const sc={C:0,M:0,E:0,K:0};
+  answers.forEach(k=>{ if(k) sc[k]++; });
+  // add interaction scores
+  Object.keys(intScores).forEach(k=> sc[k]+=intScores[k]);
+  // context modifiers
+  const ev=ctxData.envVal;
+  if(ev==='startup') sc.K+=0.5;
+  if(ev==='tradicional') sc.C+=0.5;
+  if(ev==='ong') sc.M+=0.5;
+  if(ev==='autonomo') sc.K+=0.3;
+  if(ctxData.expVal==='iniciante') sc.M+=0.3;
+  if(ctxData.expVal==='5+') sc.E+=0.3;
+  const sorted=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+  const [pk]=sorted[0]; const [sk,sv]=sorted[1];
+  const profile=T.profiles[pk]; const sec=T.profiles[sk];
+  const rawSc={C:0,M:0,E:0,K:0}; answers.forEach(k=>{if(k)rawSc[k]++;});
+  const pct=k=>Math.round((rawSc[k]/total)*100);
+  const barGrads={C:'linear-gradient(90deg,#6366f1,#3b82f6)',M:'linear-gradient(90deg,#10b981,#059669)',E:'linear-gradient(90deg,#f59e0b,#d97706)',K:'linear-gradient(90deg,#ef4444,#dc2626)'};
+  const orbGrads={C:'radial-gradient(circle at 40% 35%,#a5b4fc,#6366f1,#1e3a8a,#0f0f2e)',M:'radial-gradient(circle at 40% 35%,#6ee7b7,#10b981,#065f46,#022c22)',E:'radial-gradient(circle at 40% 35%,#fde68a,#f59e0b,#92400e,#451a03)',K:'radial-gradient(circle at 40% 35%,#fca5a5,#ef4444,#991b1b,#450a0a)'};
+  const c1={C:'#6366f1',M:'#10b981',E:'#f59e0b',K:'#ef4444'};
+  const c2={C:'#3b82f6',M:'#059669',E:'#d97706',K:'#dc2626'};
+  const R=T.result;
+  const ctxParts=[]; if(ctxData.env)ctxParts.push(ctxData.env); if(ctxData.area)ctxParts.push(ctxData.area); if(ctxData.exp)ctxParts.push(`${ctxData.exp} ${R.expSuffix}`);
+  const ctxLine=ctxParts.join(' · ');
+  const scoreRows=['C','M','E','K'].map(k=>`<div class="score-row"><div class="score-name" style="font-size:.7rem">${T.profiles[k].modelName}</div><div class="score-track"><div class="score-bar" style="background:${barGrads[k]};width:0%" data-pct="${pct(k)}"></div></div><div class="score-pct">${pct(k)}%</div></div>`).join('');
+  const actionItems=profile.actions.map(a=>`<div class="action-item"><span class="action-icon">${a.icon}</span><div class="action-text">${a.text}</div></div>`).join('');
+  const resEl=document.getElementById('result');
+  resEl.innerHTML=`
+    <div class="model-badge" style="animation:blockIn .4s ease both">${R.modelLabel} <span style="color:${c1[pk]}">${profile.modelName}</span></div>
+    <div class="res-orb-scene" style="animation:blockIn .5s ease .1s both">
+      <div class="res-ring"><div class="res-dot" style="background:${c1[pk]};box-shadow:0 0 8px ${c1[pk]}"></div><div class="res-dot" style="background:${c2[pk]};box-shadow:0 0 8px ${c2[pk]};top:auto;bottom:-3.5px"></div></div>
+      <div class="res-ring" style="animation-duration:22s"><div class="res-dot" style="background:${c2[pk]};box-shadow:0 0 8px ${c2[pk]}"></div></div>
+      <div class="res-orb" style="background:${orbGrads[pk]};box-shadow:0 0 60px 20px ${c1[pk]}44,0 0 120px 40px ${c2[pk]}22"></div>
+    </div>
+    <div class="res-label" style="animation:blockIn .5s ease .15s both">${R.dominantProfile}</div>
+    <div class="res-name" style="animation:blockIn .5s ease .2s both">${profile.name}</div>
+    <div class="res-tagline" style="animation:blockIn .5s ease .25s both">${profile.tagline}</div>
+    ${ctxLine?`<div class="ctx-summary" style="animation:blockIn .5s ease .3s both">${ctxLine}</div>`:''}
+    <div class="res-grid">
+      <div class="res-block full" style="animation-delay:.35s"><h4 style="color:${c1[pk]}">${R.howYouWork}</h4><p>${profile.description}</p></div>
+      <div class="res-block" style="animation-delay:.45s"><h4 style="color:${c1[pk]}">${R.whatYouDeliver}</h4><ul>${profile.strengths.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+      <div class="res-block" style="animation-delay:.5s"><h4 style="color:#f97316">${R.whatSabotages}</h4><ul>${profile.risks.map(r=>`<li>${r}</li>`).join('')}</ul></div>
+      <div class="res-block" style="animation-delay:.55s"><h4 style="color:${c1[pk]}">${R.underPressure}</h4><p>${profile.pressure}</p></div>
+      <div class="res-block" style="animation-delay:.6s"><h4 style="color:${c1[pk]}">${R.howYouDecide}</h4><p>${profile.decisions}</p></div>
+    </div>
+    <div class="action-block" style="animation-delay:.7s"><h4>${R.actionTitle}</h4>${actionItems}</div>
+    ${rawSc[sk]>=4?`<div class="second-block" style="animation:blockIn .5s ease .8s both"><div class="sec-label">${R.secondTrait} ${sec.modelName}</div><h3>${sec.name}</h3><p>${sec.tagline} ${R.secondTraitSuffix(pct(sk),profile.name)}</p></div>`:``}
+    <div class="score-section" style="animation:blockIn .5s ease .9s both"><div class="score-title">${R.scoresTitle}</div>${scoreRows}</div>
+    ${buildRelationshipSection(pk)}
+    <button class="btn-restart" style="animation:blockIn .5s ease 1.4s both" onclick="doRestart()">${R.restart}</button>`;
+  show('result');
+  setTimeout(()=>document.querySelectorAll('.score-bar').forEach(b=>b.style.width=b.dataset.pct+'%'),500);
+}
+
+function doRestart(){
+  ctxData={env:'',envVal:'',area:'',exp:'',expVal:''};
+  document.getElementById('constellation-canvas').classList.remove('bright');
+  show('intro');
+}
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+
+// ══════════════════════════════════════════════════
+// INÍCIO: cards de relacionamento entre perfis
+// Dados extraídos do guia-relacionamento-perfis
+// Estrutura: REL_DATA[meuPerfil][outroPerfil]
+// ══════════════════════════════════════════════════
+const REL_DATA = {
+
+  // ─── GUARDIÃO (C) ───────────────────────────────
+  C:{
+    M:{
+      sub:'Estrutura encontra cuidado',
+      summary:'Você oferece a ele clareza e consistência; ele oferece ao seu ambiente presença humana e engajamento genuíno. Em harmonia, formam o par mais funcional de um time.',
+      dynamic:'Você traz o que o Catalisador mais precisa para operar com segurança: clareza de papel, consistência e previsibilidade. Ele, por sua vez, traz o que o seu ambiente frequentemente perde: presença humana, escuta e clima.\n\nO atrito aparece quando o Catalisador posterga uma decisão por considerar o impacto emocional em alguém, e você sente que o fluxo foi interrompido sem necessidade. Para ele, o tempo investido em alinhamento humano <em>é</em> parte do processo — não um desvio dele. Para você, processo e pessoa são camadas separadas. Essa é a raiz do conflito.',
+      connect:['Ambos valorizam <strong>confiabilidade</strong> — você pela consistência de entrega, ele pela consistência de presença.','Ambos resistem a decisões impulsivas — você porque quer seguir o processo; ele porque quer entender o impacto nas pessoas antes de agir.','Ambos tendem a colocar o coletivo acima do individual — você via regras que valem para todos, ele via cuidado distribuído.'],
+      harmony:['<strong>Explique o porquê do processo, não só o que fazer.</strong> O Catalisador aceita regras quando entende como elas protegem as pessoas — não só a eficiência. "Esse protocolo existe para ninguém ser pego de surpresa" ativa nele muito mais do que "esse é o procedimento correto".','<strong>Dê espaço para a conversa acontecer antes da execução.</strong> Quando ele pede um momento de alinhamento, resista ao impulso de encurtá-lo. Frequentemente esse momento previne retrabalho.','<strong>Reconheça o que ele viu que você não viu.</strong> O Catalisador percebe quando alguém do time está com dificuldade antes que isso apareça no resultado. Nomear isso como dado útil — não como ruído emocional — fortalece a parceria.'],
+      learn:'<strong>A comunicação de processo como ato de cuidado.</strong> O Catalisador te mostra que o mesmo processo, explicado com atenção ao impacto humano, gera mais adesão do que o mesmo processo apresentado como regra. Isso não exige que você mude quem é — exige que você pergunte: <em>"quem vai precisar entender isso e o que eles precisam sentir para segui-lo?"</em>'
+    },
+    E:{
+      sub:'Consistência encontra coerência sistêmica',
+      summary:'Vocês compartilham aversão ao improviso — você quer fazer certo; ele quer fazer o certo. Quando o processo serve ao objetivo, são aliados naturais.',
+      dynamic:'Você e o Visionário compartilham uma aversão comum à ação impulsiva — e isso cria base sólida de respeito mútuo. Você define "certo" como conformidade ao processo estabelecido; ele define "certo" como coerência com o objetivo maior.\n\nO atrito típico: ele propõe revisar um processo que está funcionando porque identificou uma fragilidade sistêmica que você não vê como urgente. Para você, mexer no que funciona é risco desnecessário. Para ele, não mexer é adiar um problema maior.',
+      connect:['Ambos fazem diagnóstico antes de agir — você pelo histórico e processo, ele pela análise sistêmica.','Ambos resistem a soluções superficiais que prometem agilidade mas geram retrabalho.','Ambos valorizam previsibilidade — você no dia a dia operacional, ele no longo prazo estratégico.'],
+      harmony:['<strong>Quando ele questionar um processo, pergunte o que ele está vendo</strong> antes de defender o status quo. "Por que você acha que isso precisa mudar?" O Visionário raramente questiona por capricho — geralmente tem uma análise que você ainda não acessou.','<strong>Ofereça o histórico como dado, não como argumento de autoridade.</strong> "Já tentamos algo parecido e o que aconteceu foi X" é contribuição valiosa. "Sempre foi assim" fecha a conversa antes que ela comece.','<strong>Proponha testes estruturados.</strong> "Podemos testar essa abordagem por 30 dias com critérios claros de sucesso." Isso respeita sua necessidade de processo e a dele de exploração fundamentada.'],
+      learn:'<strong>A distinção entre processo que serve e processo que protege.</strong> O Visionário te desafia a verificar se o processo que você defende ainda está servindo ao propósito que o gerou — ou se está existindo por inércia. Incorporar o hábito de perguntar "por que esse processo existe?" antes de defendê-lo não é abandonar o processo — é torná-lo mais robusto.'
+    },
+    K:{
+      sub:'Consistência encontra velocidade',
+      summary:'Ele é tudo que você precisaria para não ficar preso em processos ineficientes; você é tudo que ele precisaria para não destruir a estrutura no caminho ao resultado.',
+      dynamic:'Esta é provavelmente sua relação mais desafiadora — e também a mais complementar quando bem gerenciada. O Acelerador vê impulsividade onde você vê agilidade; você vê burocracia onde ele vê necessidade de consistência.\n\nAtrito típico: ele passa por cima de um protocolo para chegar mais rápido e você precisa limpar o que ficou para trás. Para ele, o resultado justificou o caminho. Para você, o processo foi violado e a confiança no sistema foi erodida.',
+      connect:['Ambos são altamente orientados a entrega — apenas definem "entrega" de formas diferentes (você inclui o método; ele foca no resultado).','Ambos têm baixa tolerância para falta de clareza sobre expectativas — você quer saber como fazer; ele quer saber o que alcançar.','Ambos respeitam competência demonstrada — não hierarquia por si só.'],
+      harmony:['<strong>Foque em acordos de resultado, não só de método.</strong> Defina o que precisa ser preservado no processo (a parte inegociável) e onde ele tem liberdade de escolher o caminho.','<strong>Reconheça quando a velocidade dele salvou algo que seu processo não teria alcançado.</strong> Dar crédito real a isso — mesmo quando o caminho foi irregular — abre espaço para que ele ouça você quando o processo for realmente necessário.','<strong>Aprenda a distinguir processo essencial de processo burocrático antes de defendê-lo para ele.</strong> O Acelerador raramente ignora um processo quando você consegue demonstrar o custo real de não segui-lo.'],
+      learn:'<strong>A diferença entre processo que habilita e processo que protege o status quo.</strong> O Acelerador força você a testar se o processo que você defende realmente serve à entrega — ou se está servindo à sua zona de conforto. Incorporar a pergunta "qual é o custo de não fazer isso agora?" torna você mais eficaz em contextos que precisam de velocidade sem perder qualidade.'
+    }
+  },
+
+  // ─── CATALISADOR (M) ────────────────────────────
+  M:{
+    C:{
+      sub:'Cuidado encontra estrutura',
+      summary:'Ele oferece o que você mais precisa para que seu cuidado escale: um sistema que funcione sem depender de você. Em troca, você traz adesão genuína que ele não consegue gerar sozinho.',
+      dynamic:'O Guardião traduz suas intenções em processos reproduzíveis. Em contrapartida, você oferece o que ele frequentemente não consegue gerar sozinho: adesão genuína e engajamento — não por obrigação ao processo, mas por conexão real com o propósito.\n\nO atrito vem quando ele comunica uma mudança de processo de forma fria e transacional, e você sente que as pessoas foram desconsideradas. Ou quando você posterga uma conversa difícil para proteger alguém, e ele percebe o fluxo travado sem saber por quê.',
+      connect:['Ambos se preocupam com a sustentabilidade do que constroem — você via relações que duram, ele via sistemas que funcionam no tempo.','Ambos resistem a decisões tomadas de forma impulsiva sem considerar as consequências.','Ambos valorizam previsibilidade para o time — você como segurança emocional, ele como clareza operacional.'],
+      harmony:['<strong>Ajude-o a humanizar os processos que ele cria.</strong> Quando o Guardião apresenta uma nova estrutura, você pode ser quem pergunta: "Como comunicamos isso de um jeito que as pessoas se sintam consideradas?" Isso não muda o processo — muda como ele chega nas pessoas.','<strong>Respeite o tempo de validação dele.</strong> Oferecer uma proposta mínima por escrito antes da conversa reduz a sensação de improviso que ele evita.','<strong>Separe o cuidado relacional da decisão operacional.</strong> O Guardião consegue colaborar melhor com você quando percebe que seu cuidado com as pessoas não vai adiar indefinidamente as decisões que precisam ser tomadas.'],
+      learn:'<strong>A clareza como forma de cuidado.</strong> O Guardião mostra que definir expectativas com precisão — quem faz o quê, qual o critério, qual o prazo — é uma das formas mais respeitosas de tratar as pessoas. Você tende a deixar espaço para a ambiguidade quando quer preservar o relacionamento. Mas a falta de clareza frequentemente gera mais ansiedade do que a conversa direta que você evitou.'
+    },
+    E:{
+      sub:'Cuidado encontra pensamento sistêmico',
+      summary:'Ele pensa em sistemas; você pensa em pessoas. O insight mais poderoso: pessoas são o sistema — e nenhuma análise estratégica é completa sem o fator humano que você carrega.',
+      dynamic:'Esta é uma das combinações mais ricas e também mais frustrantes quando não bem gerenciada. O Visionário pensa em sistemas; você pensa em pessoas. Perceber que <em>pessoas são o sistema</em> é o insight que transforma essa relação.\n\nO atrito típico: você percebe que alguém está sofrendo e quer agir imediatamente. O Visionário quer entender se o problema é da pessoa ou do sistema antes de agir. Para você, isso parece falta de empatia. Para ele, agir sobre o sintoma sem entender a causa vai criar o próximo problema.',
+      connect:['Ambos odeiam soluções que resolvem o sintoma e deixam a causa intacta — você por cuidado com quem vai sofrer novamente; ele por coerência sistêmica.','Ambos questionam decisões que parecem certas na superfície mas têm custo humano ou estrutural oculto.','Ambos tendem a ser os que "fazem as perguntas que ninguém quer fazer" — cada um no seu domínio (você nas relações, ele no sistema).'],
+      harmony:['<strong>Traga os dados humanos que ele não vê.</strong> Quando você apresenta dados de forma estruturada ("observei que três pessoas do time estão com sinais de esgotamento — isso é dado relevante para a análise"), ele ouve.','<strong>Dê espaço para o diagnóstico antes de pedir ação.</strong> Deixe ele terminar a análise — e então contribua com a dimensão humana que ele provavelmente não capturou sozinho.','<strong>Use a linguagem de causa e efeito com ele.</strong> Em vez de "estou preocupada com o time", diga "o time está com baixo engajamento e isso vai afetar a entrega do próximo ciclo." A mesma preocupação, traduzida como dado sistêmico, tem muito mais peso para o Visionário.'],
+      learn:'<strong>Diagnóstico antes de presença.</strong> O Visionário te mostra que nem toda dificuldade de uma pessoa é pessoal — às vezes o ambiente está criando a condição para o problema. Incorporar a pergunta "o que no contexto pode estar contribuindo para isso?" antes de agir não diminui seu cuidado — torna-o mais eficaz e duradouro.'
+    },
+    K:{
+      sub:'Cuidado encontra velocidade',
+      summary:'Ele gera resultado; você garante que o time continue querendo gerá-lo. Sem você, ele consome o time. Quando essa parceria funciona, é a combinação mais eficaz de produção sustentável.',
+      dynamic:'O Acelerador e você têm uma complementaridade poderosa: ele gera resultado; você garante que o time continue existindo e querendo gerar resultado. Sem você, ele consome o time. Sem ele, o time pode estar bem mas não chegar a lugar nenhum.\n\nO atrito mais comum: ele avança com uma decisão que impacta alguém sem comunicar antes, e você tem que cuidar do rastro emocional que ficou. Para ele, comunicar antes teria atrasado o resultado. Para você, a falta de comunicação custou confiança que leva semanas para reconstruir.',
+      connect:['Ambos acreditam que times conectados entregam mais — apenas definem conexão de formas diferentes (você via relação; ele via meta compartilhada).','Ambos se mobilizam por desafio — você pelo desafio de fazer as pessoas chegarem ao seu melhor; ele pelo desafio do resultado em si.','Ambos tendem a agir antes de pedir permissão — você para proteger alguém, ele para capturar uma oportunidade.'],
+      harmony:['<strong>Traduza impacto humano como custo de resultado.</strong> "Se essa decisão for comunicada assim, vamos ter três semanas de resistência passiva que vão atrasar X." Isso fala a língua dele sem exigir que ele se torne você.','<strong>Ofereça-se como parceiro de comunicação, não como fiscal.</strong> Em vez de "você precisava ter conversado antes", tente "quer que eu ajude a comunicar essa decisão de um jeito que o time absorva rápido?"','<strong>Estabeleça acordos mínimos de transparência.</strong> "Me avisa quando uma decisão vai impactar alguém diretamente, mesmo que seja 5 minutos antes." Isso não atrasa nada — mas dá a você o que precisa para preparar o terreno.'],
+      learn:'<strong>A conversa difícil como ato de respeito.</strong> O Acelerador te mostra que protelar uma conversa difícil para preservar o relacionamento frequentemente produz o oposto: a pessoa se sente tratada como se não pudesse lidar com a verdade. Dizer o que precisa ser dito, com cuidado, sem esperar o momento perfeito que nunca chega — é uma das habilidades mais valiosas que você pode desenvolver sem abrir mão de quem você é.'
+    }
+  },
+
+  // ─── VISIONÁRIO (E) ─────────────────────────────
+  E:{
+    C:{
+      sub:'Visão de sistema encontra execução consistente',
+      summary:'Ele transforma sua análise em algo que funciona repetidamente. Em troca, você percebe quando o processo que ele defende está se tornando um obstáculo para onde a organização precisa ir.',
+      dynamic:'O Guardião é quem garante que seus processos sejam seguidos com precisão. Em contrapartida, você percebe quando o processo que ele defende com tanto cuidado está se tornando um obstáculo para onde a organização precisa ir.\n\nO atrito mais frequente: você propõe uma mudança baseada numa análise sólida, e ele pede mais tempo ou mais validação. Para você, a análise já está feita — a resistência dele parece irracional. Para ele, mudança sem processo de transição é improviso — e improviso gera inconsistência.',
+      connect:['Ambos acreditam que qualidade exige preparação — você via análise prévia, ele via processo definido.','Ambos são profundamente intolerantes com soluções superficiais que prometem resolver mas não resolvem a causa.','Ambos tendem a ser os mais detalhistas do time — você nos trade-offs da decisão, ele na execução dos critérios.'],
+      harmony:['<strong>Inclua um plano de transição em toda proposta de mudança.</strong> A análise que justifica a mudança é necessária, mas insuficiente para o Guardião. O que ele precisa ver é: "como chegamos de A para B sem perder a consistência no caminho?"','<strong>Respeite o que ele construiu antes de propor refazer.</strong> Reconhecer o que funcionou antes de apontar o que precisa mudar não é diplomacia vazia — é preciso. Ele responde muito melhor a "aqui está o que está funcionando e o que está criando limitação" do que a "isso precisa mudar".','<strong>Proponha pilotos estruturados.</strong> "Vamos testar por 30 dias com critérios claros de sucesso e falha" é a proposta mais palatável que você pode fazer para o Guardião. Ela reduz o risco percebido sem adiar indefinidamente a mudança necessária.'],
+      learn:'<strong>O valor do processo como memória organizacional.</strong> O Guardião preserva o que funcionou — e esse conhecimento tem valor que você tende a subestimar quando está focado no que precisa ser mudado. Incorporar a pergunta "o que desse processo atual ainda deve ser preservado?" antes de propor uma revisão completa torna sua análise mais precisa e suas propostas mais implementáveis.'
+    },
+    M:{
+      sub:'Análise sistêmica encontra inteligência relacional',
+      summary:'Ele tem acesso a dados sobre o sistema que nenhuma análise estruturada captura: como as pessoas realmente estão, onde a confiança está erodindo. Você precisa desses dados.',
+      dynamic:'O Catalisador tem acesso a dados sobre o estado do sistema que nenhuma análise estruturada captura: como as pessoas realmente estão, o que está gerando resistência silenciosa, onde a confiança está erodindo. Você precisa desses dados — mas tende a não saber como buscá-los.\n\nO atrito: você toma uma decisão que faz todo sentido no papel, e o Catalisador te diz que vai impactar negativamente alguém. Para você, isso soa como obstáculo emocional. Para ele, é dado que você está ignorando. A reconciliação começa quando você para de tratar o impacto humano como variável subjetiva.',
+      connect:['Ambos se preocupam com soluções que duram — você via coerência estratégica, ele via sustentabilidade relacional.','Ambos percebem problemas que outros não nomeiam — você nas inconsistências do sistema, ele nas tensões das relações.','Ambos acreditam que o "como" da decisão importa tanto quanto o "o quê" — apenas definem "como" de formas diferentes.'],
+      harmony:['<strong>Pergunte ativamente o que ele está percebendo nas pessoas.</strong> "O que você está vendo no time que eu provavelmente não estou vendo?" é a pergunta que transforma o Catalisador num aliado estratégico.','<strong>Inclua explicitamente o impacto humano nas suas análises de trade-off.</strong> Adicionar "o custo humano desta opção é X" não é sentimentalismo — é análise completa. E o Catalisador vai confiar muito mais nas suas decisões quando perceber que essa variável está no seu radar.','<strong>Dê crédito aos dados que ele traz, mesmo sem estrutura.</strong> "O que você percebeu sobre o estado do time é dado relevante. Me ajuda a estruturar isso para que eu possa incluir na análise?" Isso transforma intuição em informação utilizável.'],
+      learn:'<strong>A presença como variável estratégica.</strong> O Catalisador mostra que o estado emocional de um time é dado preditivo de performance — não ruído subjetivo. Incorporar o hábito de perguntar "como as pessoas estão?" como parte da análise de contexto torna suas estratégias mais robustas e mais implementáveis.'
+    },
+    K:{
+      sub:'Análise profunda encontra execução rápida',
+      summary:'Ele transforma análise em ação mais rápido que qualquer outro perfil; você garante que a ação seja na direção certa. Juntos são a combinação mais potente para ambientes que precisam de velocidade e direção.',
+      dynamic:'Você e o Acelerador são a combinação mais potente para ambientes que precisam tanto de velocidade quanto de direção. Ele transforma análise em ação mais rápido do que qualquer outro perfil; você garante que a ação seja na direção certa.\n\nO problema é que raramente chegam a essa combinação virtuosa porque o atrito ocorre antes: você ainda está analisando quando ele já está executando — e o que ele executou pode ter sido no sentido errado. Para o Acelerador, sua análise parece hesitação. Para você, a velocidade dele parece imprudência.',
+      connect:['Ambos são orientados a resultado — você ao resultado sustentável de longo prazo, ele ao resultado imediato e mensurável.','Ambos questionam o que está sendo feito quando acreditam que existe um caminho melhor.','Ambos têm tolerância baixa para ineficiência — você pela incoerência sistêmica, ele pelo custo de oportunidade do tempo perdido.'],
+      harmony:['<strong>Entregue sínteses, não análises completas.</strong> O Acelerador precisa: "Aqui estão as 2 opções. A opção A entrega mais rápido mas tem esse risco. A opção B é mais robusta mas leva mais tempo." Aprenda a compactar sua análise sem perder o que é essencial.','<strong>Defina janelas de análise, não análise indefinida.</strong> Quando você precisa de tempo para pensar, diga: "Vou analisar isso e te dou uma posição em 2 horas." Isso evita que ele avance sozinho enquanto você ainda está processando.','<strong>Reconheça quando a velocidade dele funcionou.</strong> Quando o Acelerador age rápido e o resultado é bom, reconheça isso explicitamente. Isso cria abertura para que ele ouça você quando a velocidade for um risco real.'],
+      learn:'<strong>A análise boa o suficiente para avançar.</strong> O Acelerador força você a testar onde está o ponto de retorno decrescente da sua análise. Em muitas situações, 70% de clareza é suficiente para uma decisão que pode ser ajustada. Distinguir "decisão reversível com custo baixo de erro" de "decisão irreversível ou de alto custo" é uma das habilidades que mais vai aumentar sua eficácia operacional.'
+    }
+  },
+
+  // ─── ACELERADOR (K) ─────────────────────────────
+  K:{
+    C:{
+      sub:'Velocidade encontra estrutura',
+      summary:'Ele parece obstáculo — e ao mesmo tempo é o mais necessário. O freio que ele impõe é o que garante que o que você construiu continue de pé quando você já está no próximo desafio.',
+      dynamic:'O Guardião é o perfil que mais parece obstáculo para você — e ao mesmo tempo é o mais necessário. Ele vai frear você em momentos que parecem insuportavelmente lentos. Mas é exatamente esse freio que vai garantir que o que você construiu continue de pé quando você já foi embora para o próximo desafio. Sem ele, você gera resultado — mas também gera caos que outros precisam limpar.\n\nO atrito mais frequente: ele quer validação antes de avançar numa situação onde você já vê o caminho claro. Para você, pedir validação é perda de tempo. Para ele, avançar sem validação é expor o time a risco desnecessário.',
+      connect:['Ambos são altamente orientados à entrega — você pelo resultado, ele pelo processo que garante que o resultado seja reproduzível.','Ambos respeitam competência demonstrada mais do que hierarquia por si só.','Ambos têm padrão alto — você para resultado, ele para qualidade de execução. Isso cria base mútua de respeito quando reconhecido.'],
+      harmony:['<strong>Defina antecipadamente o que precisa de validação e o que é de sua autonomia.</strong> Tenha a conversa direta uma vez: "Quero alinhar contigo o que precisa do teu ok antes de eu avançar, e o que está dentro da minha autonomia." Isso respeita o processo dele sem travar você o tempo todo.','<strong>Traga o resultado como argumento para flexibilizar o processo.</strong> "Testei essa abordagem diferente e o resultado foi X. Com base nisso, faz sentido revisarmos esse processo?" é muito mais eficaz do que argumentar no abstrato. Para o Guardião, evidência supera argumento.','<strong>Deixe-o documentar o que você aprendeu no caminho.</strong> Você aprende pela execução; ele preserva o aprendizado em processo. Essa combinação é um dos ativos mais valiosos que um time pode ter.'],
+      learn:'<strong>Que consistência é vantagem competitiva sustentável.</strong> O Guardião mostra que resultados excepcionais únicos não constroem reputação — resultados confiáveis ao longo do tempo sim. Incorporar a pergunta "o que precisa acontecer para isso funcionar toda vez, não só agora?" é o que separa o Acelerador que gera impacto sustentável do que gera resultado e some.'
+    },
+    M:{
+      sub:'Velocidade encontra inteligência relacional',
+      summary:'Ele mantém o time coeso enquanto você lidera em velocidade máxima. Percebe o desgaste antes que apareça no resultado. Você precisa dele muito mais do que percebe.',
+      dynamic:'O Catalisador é quem mantém o time coeso enquanto você lidera em velocidade máxima. Ele percebe o desgaste antes que apareça no resultado; ele repara as relações que você inadvertidamente danifica no caminho; ele garante que as pessoas queiram continuar ao seu lado — não apenas sigam por obrigação.\n\nO atrito: ele desacelera decisões para garantir que todo mundo foi ouvido, e você sente que a janela de oportunidade está fechando. Para você, ouvir todo mundo é luxo que a urgência não permite. Para ele, não ouvir é o caminho mais curto para um time que entrega com o corpo mas não com o coração.',
+      connect:['Ambos acreditam que times de alta performance existem — apenas definem o que cria alta performance de formas diferentes (você via metas; ele via conexão genuína).','Ambos tendem a agir antes de pedir permissão — você para capturar oportunidade, ele para proteger alguém.','Ambos têm impacto real nas pessoas ao redor — você pelo que mobiliza, ele pelo que sustenta.'],
+      harmony:['<strong>Trate o estado do time como dado operacional.</strong> Quando o Catalisador sinaliza que alguém está no limite, trate isso como você trataria um indicador de risco de entrega — porque é.','<strong>Peça a ele que te avise antes de ser tarde demais.</strong> "Quando você perceber que alguém está chegando no limite, me avisa antes de virar problema. Não preciso de uma conversa longa — só o alerta." Isso usa a sensibilidade dele a seu favor sem exigir que você mude de velocidade.','<strong>Reconheça o que ele faz que você não conseguiria fazer.</strong> Dizer "você manteve o time coeso num ciclo que teria quebrado sem você" é o reconhecimento mais poderoso que você pode dar ao Catalisador.'],
+      learn:'<strong>Que velocidade sustentada exige confiança — e confiança exige presença.</strong> O Catalisador mostra que as pessoas seguem um líder por mais tempo e com mais intensidade quando sentem que ele se importa com elas como pessoas — não só como recursos de entrega. O hábito de verificar como as pessoas estão antes de cobrar é o que separa o Acelerador que queima times do que os eleva.'
+    },
+    E:{
+      sub:'Velocidade encontra direção de longo prazo',
+      summary:'Ele é o único perfil que pode dar à sua velocidade o que ela raramente tem: a certeza de que você está indo na direção certa. Executar a coisa errada com maestria é uma das armadilhas mais caras que existem.',
+      dynamic:'O Visionário é o único perfil que pode dar à sua velocidade algo que ela raramente tem: a certeza de que você está indo na direção certa. Você pode executar com maestria — mas executar a coisa errada com maestria é uma das armadilhas mais caras que existem. Ele detecta isso antes que aconteça.\n\nO atrito: ele ainda está analisando quando você já poderia ter testado três hipóteses. Para você, análise que não leva a decisão é paralisia. Para ele, decisão tomada com premissa errada custa mais do que o tempo da análise. Essa tensão pode ser produtiva se negociada — ou destrutiva se cada um simplesmente ignora o outro.',
+      connect:['Ambos questionam o que está sendo feito quando percebem que existe um caminho melhor — você pela ineficiência, ele pela incoerência.','Ambos têm alta tolerância para ambiguidade — você executa nela; ele mapeia ela.','Ambos têm visão de resultado — você do resultado imediato, ele do resultado sustentável. Essa diferença é complementar, não contraditória.'],
+      harmony:['<strong>Pergunte a ele qual é a hipótese errada que você pode estar testando.</strong> "Antes de eu avançar com isso, tem alguma premissa que você acha que pode estar equivocada?" Isso leva 5 minutos e pode poupar semanas de retrabalho.','<strong>Estabeleça janelas de análise com prazo.</strong> "Você tem 24 horas para me dar a análise. Depois disso, avanço com o que tiver." Isso respeita o modo dele sem deixar a execução indefinidamente em espera.','<strong>Compartilhe o que aprendeu executando.</strong> Para o Visionário, os dados que você coleta em campo são ouro analítico. "Testei essa abordagem e aqui está o que aconteceu" é exatamente o tipo de dado empírico que alimenta a análise dele.'],
+      learn:'<strong>A diferença entre decisão reversível e irreversível — e o que isso muda no ritmo.</strong> O Visionário mostra que nem toda decisão merece o mesmo nível de velocidade. A pergunta "qual o custo de reverter se eu estiver errado?" antes de agir não vai tornar você lento — vai tornar você mais cirúrgico em saber quando acelerar sem freio e quando vale parar 20 minutos para pensar.'
+    }
+  }
+};
+
+// ── Ações semanais por perfil ─────────────────────
+const REL_ACTIONS = {
+  C:{ title:'3 ações para esta semana · Guardião', items:[
+    {w:'Com o Catalisador', t:'Antes de apresentar um processo ou regra, adicione uma frase explicando como ele protege as pessoas envolvidas — não só a eficiência. Observe a diferença na receptividade.'},
+    {w:'Com o Visionário',  t:'Quando ele questionar algo que funciona, resista ao impulso de defender imediatamente. Pergunte: "O que você está vendo que eu posso estar perdendo?" antes de responder.'},
+    {w:'Com o Acelerador', t:'Identifique uma situação onde você pode dizer "a parte inegociável do processo é X — no restante, você decide o caminho." Dê a ele a velocidade onde for seguro e preserve o que é essencial.'}
+  ]},
+  M:{ title:'3 ações para esta semana · Catalisador', items:[
+    {w:'Com o Guardião',   t:'Da próxima vez que precisar propor algo, escreva uma proposta mínima por escrito antes da conversa. Isso reduz a sensação de improviso que trava ele.'},
+    {w:'Com o Visionário', t:'Apresente uma preocupação humana como dado sistêmico. Em vez de "estou preocupada com a Ana", tente "a Ana está com sinais de esgotamento que podem impactar a entrega do Q3. Vale mapear o que está causando isso."'},
+    {w:'Com o Acelerador', t:'Identifique uma conversa que você tem postergado para proteger alguém. Tenha ela esta semana — com cuidado, mas sem adiar. O cuidado real às vezes exige a conversa que você mais evita.'}
+  ]},
+  E:{ title:'3 ações para esta semana · Visionário', items:[
+    {w:'Com o Guardião',   t:'Na próxima proposta de mudança, adicione uma seção "O que desse processo atual deve ser preservado" antes de apresentar o que precisa mudar. Observe o nível de abertura antes e depois.'},
+    {w:'Com o Catalisador',t:'Numa reunião esta semana, pergunte explicitamente: "O que você está percebendo no time que eu provavelmente não estou vendo?" Anote o que ele diz. Use pelo menos um desses dados na sua análise seguinte.'},
+    {w:'Com o Acelerador', t:'Pratique o "briefing de 3 linhas": situação, 2 opções com prós/contras em uma linha cada, e sua recomendação. Corte o resto para uma conversa posterior se ele quiser aprofundar.'}
+  ]},
+  K:{ title:'3 ações para esta semana · Acelerador', items:[
+    {w:'Com o Guardião',   t:'Tenha uma conversa de 15 minutos para definir juntos: "O que está dentro da minha autonomia para avançar sem aval, e o que precisa do teu ok?" Sair dessa conversa com um acordo claro vai poupar semanas de atrito futuro.'},
+    {w:'Com o Catalisador',t:'Esta semana, antes de cobrar resultado de alguém do time, pergunte a ele (ou à pessoa diretamente): "Como você está?" — e espere a resposta real. Use o que ouvir para calibrar como cobrar, não para decidir se cobrar.'},
+    {w:'Com o Visionário',  t:'Antes de avançar com sua próxima decisão importante, pergunte: "Tem alguma premissa aqui que você acha que pode estar equivocada?" Limite a conversa a 20 minutos. Se ele der um dado que muda algo, incorpore. Se não, avance.'}
+  ]}
+};
+
+// ── Gera o HTML da seção completa ────────────────
+function buildRelationshipSection(pk){
+  const OTHERS = ['C','M','E','K'].filter(k=>k!==pk);
+  const META = {
+    C:{name:'O Guardião',   model:'CLÁSSICO'},
+    M:{name:'O Catalisador',model:'MOTIVADOR'},
+    E:{name:'O Visionário', model:'ESTRATÉGICO'},
+    K:{name:'O Acelerador', model:'COMPETITIVO'}
+  };
+  const myName = META[pk].name;
+
+  const cardsHtml = OTHERS.map(op=>{
+    const d = REL_DATA[pk][op];
+    const m = META[op];
+    const uid = `rel-${pk}-${op}`;
+    const detailSections = [
+      {ico:'⚡', lbl:'Dinâmica e atritos',  cls:'dl-dynamic',
+       body:`<p>${d.dynamic.replace(/\n/g,'</p><p style="margin-top:8px">')}</p>`},
+      {ico:'🔗', lbl:'Pontos de conexão',   cls:'dl-connect',
+       body:`<ul>${d.connect.map(c=>`<li>${c}</li>`).join('')}</ul>`},
+      {ico:'🌿', lbl:'Como conviver bem',   cls:'dl-harmony',
+       body:`<ul>${d.harmony.map(h=>`<li style="margin-bottom:7px">${h}</li>`).join('')}</ul>`},
+      {ico:'🌱', lbl:'O que aprender',      cls:'dl-learn',
+       body:`<p>${d.learn}</p>`}
+    ].map(s=>`
+      <div class="rel-detail-section">
+        <div class="rel-detail-label">
+          <span class="dl-ico">${s.ico}</span>
+          <span class="${s.cls}">${s.lbl}</span>
+        </div>
+        ${s.body}
+      </div>`).join('');
+
+    return `
+    <div class="rel-card rc-${op}" id="${uid}">
+      <div class="rel-card-head">
+        <div class="rel-card-orb"></div>
+        <div class="rel-card-meta">
+          <div class="rel-card-model">${m.model}</div>
+          <div class="rel-card-name">${m.name}</div>
+          <div class="rel-card-sub">${d.sub}</div>
+        </div>
+      </div>
+      <div class="rel-card-summary">${d.summary}</div>
+      <button class="rel-btn-toggle" onclick="toggleRelCard('${uid}')" aria-expanded="false">
+        <span>Ver mais</span>
+        <span class="rel-btn-arrow">▾</span>
+      </button>
+      <div class="rel-detail" id="${uid}-detail">
+        <div class="rel-detail-inner">${detailSections}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const acts = REL_ACTIONS[pk];
+  const actsHtml = acts.items.map((a,i)=>`
+    <div class="rel-action-row">
+      <div class="rel-action-num">${i+1}</div>
+      <div class="rel-action-text"><strong>${a.w}:</strong> ${a.t}</div>
+    </div>`).join('');
+
+  return `
+<!-- INÍCIO: cards de relacionamento entre perfis -->
+<div id="rel-section">
+  <div class="rel-header">
+    <div class="rel-eyebrow">Inteligência relacional</div>
+    <div class="rel-title">Como se relacionar com os outros perfis</div>
+    <p class="rel-intro">Sendo ${myName}, veja como navegar as dinâmicas com cada arquétipo — onde surgem atritos naturais, onde há complementaridade e como criar pontes.</p>
+  </div>
+  <div class="rel-divider"></div>
+  <div class="rel-grid">${cardsHtml}</div>
+  <div class="rel-actions-block ra-${pk}">
+    <div class="rel-actions-title">${acts.title}</div>
+    ${actsHtml}
+  </div>
+</div>
+<!-- FIM: cards de relacionamento entre perfis -->`;
+}
+
+// ── Toggle individual de card (outros podem ficar abertos) ──
+function toggleRelCard(uid){
+  const card   = document.getElementById(uid);
+  const detail = document.getElementById(uid+'-detail');
+  const btn    = card.querySelector('.rel-btn-toggle');
+  if(!card||!detail) return;
+  const opening = !card.classList.contains('is-expanded');
+  if(opening){
+    card.classList.add('is-expanded');
+    btn.setAttribute('aria-expanded','true');
+    btn.querySelector('span:first-child').textContent = 'Ver menos';
+    // força reflow para a transição funcionar após max-height:0 inicial
+    detail.style.maxHeight = detail.scrollHeight + 'px';
+  } else {
+    card.classList.remove('is-expanded');
+    btn.setAttribute('aria-expanded','false');
+    btn.querySelector('span:first-child').textContent = 'Ver mais';
+    detail.style.maxHeight = '0';
+  }
+}
+// ══════════════════════════════════════════════════
+// FIM: cards de relacionamento entre perfis
+// ══════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+(function(){
+  document.querySelectorAll('.lang-option').forEach(o=>o.classList.toggle('active',o.dataset.lang===currentLang));
+  applyTranslations(false);
+})();
+</script>
+</body>
+</html>
